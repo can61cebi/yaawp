@@ -129,6 +129,11 @@ Kirigami.Page {
         input.forceActiveFocus()
     }
 
+    function linkify(t) {
+        const esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        return esc.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1">$1</a>')
+    }
+
     function startTyping() {
         if (!page.typingActive) {
             Ipc.setTyping(page.chatJid, true)
@@ -797,12 +802,14 @@ Kirigami.Page {
                                 readonly property bool revoked: row.type === "revoked"
                                 visible: (row.text.length > 0 || revoked) && !fileChip.isFile
                                 width: parent.width
-                                text: revoked ? "This message was deleted" : row.text
+                                text: revoked ? "This message was deleted" : page.linkify(row.text)
                                 font.italic: revoked
                                 opacity: revoked ? 0.7 : 1.0
-                                textFormat: Text.PlainText
+                                textFormat: Text.StyledText
                                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                 color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                linkColor: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.linkColor
+                                onLinkActivated: (link) => Controller.openUrl(link)
                             }
 
                             QQC2.Label {

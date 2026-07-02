@@ -42,6 +42,7 @@ public:
     // If the clipboard holds an image, save it to a temp file and return the
     // path, otherwise return an empty string.
     Q_INVOKABLE QString takeClipboardImage() const;
+    Q_INVOKABLE void openUrl(const QString &url) const;
     Q_INVOKABLE void saveScroll(const QString &jid, double contentY);
     Q_INVOKABLE double savedScroll(const QString &jid) const;
     Q_INVOKABLE void requestGroupInfo(const QString &jid);

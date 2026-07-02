@@ -144,6 +144,13 @@ void Controller::openFile(const QString &path) const
     }
 }
 
+void Controller::openUrl(const QString &url) const
+{
+    if (!url.isEmpty()) {
+        QDesktopServices::openUrl(QUrl::fromUserInput(url));
+    }
+}
+
 QString Controller::takeClipboardImage() const
 {
     const QImage image = QGuiApplication::clipboard()->image();
