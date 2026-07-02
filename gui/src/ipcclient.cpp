@@ -90,6 +90,14 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
         Q_EMIT messageReceived(data);
     } else if (event == QStringLiteral("receipt")) {
         Q_EMIT receiptReceived(data);
+    } else if (event == QStringLiteral("chat_presence")) {
+        Q_EMIT chatPresenceChanged(data.value(QStringLiteral("chat_jid")).toString(),
+                                   data.value(QStringLiteral("sender_jid")).toString(),
+                                   data.value(QStringLiteral("state")).toString());
+    } else if (event == QStringLiteral("presence")) {
+        Q_EMIT presenceChanged(data.value(QStringLiteral("jid")).toString(),
+                               data.value(QStringLiteral("state")).toString(),
+                               static_cast<qint64>(data.value(QStringLiteral("last_seen")).toDouble()));
     }
     Q_EMIT eventReceived(event, data);
 }
@@ -156,6 +164,21 @@ void IpcClient::sendText(const QString &chatJid, const QString &text)
     p.insert(QStringLiteral("chat_jid"), chatJid);
     p.insert(QStringLiteral("text"), text);
     send(QStringLiteral("send_text"), p);
+}
+
+void IpcClient::setTyping(const QString &chatJid, bool composing)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("composing"), composing);
+    send(QStringLiteral("set_typing"), p);
+}
+
+void IpcClient::subscribePresence(const QString &jid)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    send(QStringLiteral("subscribe_presence"), p);
 }
 
 void IpcClient::markRead(const QString &chatJid, const QStringList &ids)

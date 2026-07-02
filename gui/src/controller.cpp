@@ -1,6 +1,8 @@
 #include "controller.h"
 #include "ipcclient.h"
 
+#include <QDateTime>
+
 Controller::Controller(IpcClient *ipc, QObject *parent)
     : QObject(parent)
     , m_ipc(ipc)
@@ -9,6 +11,8 @@ Controller::Controller(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::connectionStateChanged, this, &Controller::onConnectionStateChanged);
     connect(ipc, &IpcClient::pairSucceeded, this, &Controller::onPairSucceeded);
     connect(ipc, &IpcClient::eventReceived, this, &Controller::onEvent);
+    connect(ipc, &IpcClient::chatPresenceChanged, this, &Controller::onChatPresence);
+    connect(ipc, &IpcClient::presenceChanged, this, &Controller::onPresence);
 }
 
 void Controller::setCurrentChatJid(const QString &jid)
@@ -17,7 +21,14 @@ void Controller::setCurrentChatJid(const QString &jid)
         return;
     }
     m_currentChatJid = jid;
+    m_typing = false;
+    m_online = false;
+    m_lastSeen = 0;
+    updateStatus();
     Q_EMIT currentChatChanged();
+    if (!jid.isEmpty()) {
+        m_ipc->subscribePresence(jid);
+    }
 }
 
 void Controller::onQrReceived(const QString &code)
@@ -51,5 +62,44 @@ void Controller::onEvent(const QString &event, const QJsonObject &data)
     // conversations appear without the user pressing Refresh.
     if (event == QStringLiteral("history_sync")) {
         m_ipc->requestChats();
+    }
+}
+
+void Controller::onChatPresence(const QString &chatJid, const QString &senderJid, const QString &state)
+{
+    Q_UNUSED(senderJid)
+    if (chatJid != m_currentChatJid) {
+        return;
+    }
+    m_typing = (state == QStringLiteral("composing"));
+    updateStatus();
+}
+
+void Controller::onPresence(const QString &jid, const QString &state, qint64 lastSeen)
+{
+    if (jid != m_currentChatJid) {
+        return;
+    }
+    m_online = (state == QStringLiteral("available"));
+    if (lastSeen > 0) {
+        m_lastSeen = lastSeen;
+    }
+    updateStatus();
+}
+
+void Controller::updateStatus()
+{
+    QString status;
+    if (m_typing) {
+        status = QStringLiteral("typing");
+    } else if (m_online) {
+        status = QStringLiteral("online");
+    } else if (m_lastSeen > 0) {
+        status = QStringLiteral("last seen ")
+            + QDateTime::fromSecsSinceEpoch(m_lastSeen).toString(QStringLiteral("d MMM hh:mm"));
+    }
+    if (status != m_currentChatStatus) {
+        m_currentChatStatus = status;
+        Q_EMIT currentChatStatusChanged();
     }
 }

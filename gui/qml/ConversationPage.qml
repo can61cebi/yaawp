@@ -7,6 +7,7 @@ Kirigami.ScrollablePage {
     id: page
 
     property string chatTitle: "Conversation"
+    property bool typingActive: false
     title: chatTitle
 
     function sendCurrent() {
@@ -16,6 +17,46 @@ Kirigami.ScrollablePage {
         }
         MessageModel.sendText(value)
         input.clear()
+        page.stopTyping()
+    }
+
+    function startTyping() {
+        if (!page.typingActive) {
+            Ipc.setTyping(Controller.currentChatJid, true)
+            page.typingActive = true
+        }
+        typingTimer.restart()
+    }
+
+    function stopTyping() {
+        typingTimer.stop()
+        if (page.typingActive) {
+            Ipc.setTyping(Controller.currentChatJid, false)
+            page.typingActive = false
+        }
+    }
+
+    Component.onDestruction: page.stopTyping()
+
+    Timer {
+        id: typingTimer
+        interval: 4000
+        onTriggered: page.stopTyping()
+    }
+
+    header: QQC2.Control {
+        visible: Controller.currentChatStatus.length > 0
+        height: visible ? implicitHeight : 0
+        leftPadding: Kirigami.Units.largeSpacing
+        rightPadding: Kirigami.Units.largeSpacing
+        topPadding: Kirigami.Units.smallSpacing
+        bottomPadding: Kirigami.Units.smallSpacing
+
+        contentItem: QQC2.Label {
+            text: Controller.currentChatStatus
+            opacity: 0.75
+            font: Kirigami.Theme.smallFont
+        }
     }
 
     footer: QQC2.ToolBar {
@@ -25,6 +66,13 @@ Kirigami.ScrollablePage {
                 id: input
                 Layout.fillWidth: true
                 placeholderText: "Type a message"
+                onTextEdited: {
+                    if (text.length > 0) {
+                        page.startTyping()
+                    } else {
+                        page.stopTyping()
+                    }
+                }
                 onAccepted: page.sendCurrent()
             }
             QQC2.Button {

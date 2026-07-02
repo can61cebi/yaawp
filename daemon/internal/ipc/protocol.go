@@ -19,8 +19,10 @@ const (
 	MethodLogout       = "logout"
 	MethodListChats    = "list_chats"
 	MethodListMessages = "list_messages"
-	MethodSendText     = "send_text"
-	MethodMarkRead     = "mark_read"
+	MethodSendText          = "send_text"
+	MethodMarkRead          = "mark_read"
+	MethodSetTyping         = "set_typing"
+	MethodSubscribePresence = "subscribe_presence"
 )
 
 // Event names (daemon to GUI).
@@ -30,8 +32,9 @@ const (
 	EventConnection  = "connection"
 	EventMessage     = "message"
 	EventReceipt     = "receipt"
-	EventPresence    = "presence"
-	EventHistorySync = "history_sync"
+	EventPresence     = "presence"
+	EventHistorySync  = "history_sync"
+	EventChatPresence = "chat_presence"
 )
 
 // Command is a request from a GUI client.
@@ -81,6 +84,15 @@ type MarkReadParams struct {
 	MessageIDs []string `json:"message_ids"`
 }
 
+type SetTypingParams struct {
+	ChatJID   string `json:"chat_jid"`
+	Composing bool   `json:"composing"`
+}
+
+type SubscribePresenceParams struct {
+	JID string `json:"jid"`
+}
+
 type Chat struct {
 	JID         string `json:"jid"`
 	Name        string `json:"name"`
@@ -113,4 +125,6 @@ type Backend interface {
 	ListMessages(p ListMessagesParams) (interface{}, error)
 	SendText(p SendTextParams) (interface{}, error)
 	MarkRead(p MarkReadParams) (interface{}, error)
+	SetTyping(p SetTypingParams) (interface{}, error)
+	SubscribePresence(p SubscribePresenceParams) (interface{}, error)
 }

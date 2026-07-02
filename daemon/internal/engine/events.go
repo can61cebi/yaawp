@@ -20,6 +20,8 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 	switch evt := rawEvt.(type) {
 	case *events.Connected:
 		e.setQR("")
+		// Announce availability so the server delivers others' presence to us.
+		go func() { _ = e.client.SendPresence(e.ctx, types.PresenceAvailable) }()
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "connected"}))
 	case *events.Disconnected:
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "disconnected"}))
@@ -48,13 +50,19 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 			"receipt":     string(evt.Type),
 		}))
 	case *events.Presence:
-		state := "available"
+		data := map[string]any{"jid": e.canonicalJID(evt.From.String()), "state": "available"}
 		if evt.Unavailable {
-			state = "unavailable"
+			data["state"] = "unavailable"
 		}
-		e.emit(ipc.NewEvent(ipc.EventPresence, map[string]any{
-			"jid":   e.canonicalJID(evt.From.String()),
-			"state": state,
+		if !evt.LastSeen.IsZero() {
+			data["last_seen"] = evt.LastSeen.Unix()
+		}
+		e.emit(ipc.NewEvent(ipc.EventPresence, data))
+	case *events.ChatPresence:
+		e.emit(ipc.NewEvent(ipc.EventChatPresence, map[string]any{
+			"chat_jid":   e.canonicalJID(evt.Chat.String()),
+			"sender_jid": e.canonicalJID(evt.Sender.String()),
+			"state":      string(evt.State),
 		}))
 	case *events.HistorySync:
 		e.persistHistory(evt.Data)

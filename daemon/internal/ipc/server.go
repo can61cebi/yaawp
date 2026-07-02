@@ -139,6 +139,14 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p MarkReadParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.MarkRead(p)
+	case MethodSetTyping:
+		var p SetTypingParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.SetTyping(p)
+	case MethodSubscribePresence:
+		var p SubscribePresenceParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.SubscribePresence(p)
 	default:
 		err = errUnknownMethod
 	}

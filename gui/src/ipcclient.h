@@ -27,6 +27,8 @@ public:
     Q_INVOKABLE void requestChats();
     Q_INVOKABLE void requestMessages(const QString &chatJid, int limit = 50);
     Q_INVOKABLE void sendText(const QString &chatJid, const QString &text);
+    Q_INVOKABLE void setTyping(const QString &chatJid, bool composing);
+    Q_INVOKABLE void subscribePresence(const QString &jid);
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:
@@ -38,6 +40,8 @@ Q_SIGNALS:
     void receiptReceived(const QJsonObject &receipt);
     void chatsReceived(const QJsonArray &chats);
     void messagesReceived(const QJsonArray &messages);
+    void chatPresenceChanged(const QString &chatJid, const QString &senderJid, const QString &state);
+    void presenceChanged(const QString &jid, const QString &state, qint64 lastSeen);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:

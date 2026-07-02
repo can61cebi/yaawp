@@ -311,3 +311,31 @@ func (e *Engine) MarkRead(p ipc.MarkReadParams) (interface{}, error) {
 	}
 	return map[string]any{"ok": true}, nil
 }
+
+// SetTyping sends a typing (composing) or paused chat presence for a chat.
+func (e *Engine) SetTyping(p ipc.SetTypingParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	state := types.ChatPresencePaused
+	if p.Composing {
+		state = types.ChatPresenceComposing
+	}
+	if err := e.client.SendChatPresence(e.ctx, jid, state, types.ChatPresenceMediaText); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
+}
+
+// SubscribePresence asks the server to push presence updates for a contact.
+func (e *Engine) SubscribePresence(p ipc.SubscribePresenceParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.JID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	if err := e.client.SubscribePresence(e.ctx, jid); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
+}
