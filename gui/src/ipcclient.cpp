@@ -183,6 +183,8 @@ void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &res
         Q_EMIT messagesReceived(result.toArray());
     } else if (method == QStringLiteral("group_info")) {
         Q_EMIT groupInfoReceived(result.toObject());
+    } else if (method == QStringLiteral("contact_info")) {
+        Q_EMIT contactInfoReceived(result.toObject());
     } else if (method == QStringLiteral("list_starred")) {
         Q_EMIT starredReceived(result.toArray());
     }
@@ -296,6 +298,13 @@ void IpcClient::requestGroupInfo(const QString &jid)
     QJsonObject p;
     p.insert(QStringLiteral("jid"), jid);
     send(QStringLiteral("group_info"), p);
+}
+
+void IpcClient::requestContactInfo(const QString &jid)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    send(QStringLiteral("contact_info"), p);
 }
 
 void IpcClient::setPinned(const QString &jid, bool pinned)

@@ -38,6 +38,15 @@ Kirigami.Page {
                 Controller.requestGroupInfo(page.chatJid)
                 groupSheet.open()
             }
+        },
+        Kirigami.Action {
+            text: "Contact info"
+            icon.name: "documentinfo"
+            visible: !page.isGroup
+            onTriggered: {
+                Controller.requestContactInfo(page.chatJid)
+                contactSheet.open()
+            }
         }
     ]
 
@@ -246,6 +255,45 @@ Kirigami.Page {
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                     }
                 }
+            }
+        }
+    }
+
+    Kirigami.OverlaySheet {
+        id: contactSheet
+        title: "Contact info"
+
+        ColumnLayout {
+            spacing: Kirigami.Units.largeSpacing
+            width: Kirigami.Units.gridUnit * 18
+
+            KirigamiComponents.Avatar {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                name: Controller.contactInfo.name !== undefined ? Controller.contactInfo.name : page.chatTitle
+                source: (Controller.contactInfo.avatar !== undefined && Controller.contactInfo.avatar.length > 0)
+                        ? "file://" + Controller.contactInfo.avatar : ""
+            }
+            Kirigami.Heading {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                text: Controller.contactInfo.name !== undefined ? Controller.contactInfo.name : page.chatTitle
+                elide: Text.ElideRight
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                visible: text.length > 0
+                text: Controller.contactInfo.phone !== undefined ? Controller.contactInfo.phone : ""
+                opacity: 0.8
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                visible: text.length > 0
+                text: Controller.contactInfo.status !== undefined ? Controller.contactInfo.status : ""
+                wrapMode: Text.WordWrap
+                opacity: 0.8
             }
         }
     }

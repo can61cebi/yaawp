@@ -287,6 +287,36 @@ func (e *Engine) GroupInfo(p ipc.GroupInfoParams) (interface{}, error) {
 	}, nil
 }
 
+// ContactInfo returns a one to one contact's name, phone, about text and any
+// cached avatar for the info panel.
+func (e *Engine) ContactInfo(p ipc.ContactInfoParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.JID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	name := e.resolveContactName(p.JID)
+	status := ""
+	if infos, uerr := e.client.GetUserInfo(e.ctx, []types.JID{jid}); uerr == nil {
+		if ui, ok := infos[jid]; ok {
+			status = ui.Status
+		}
+	}
+	avatarPath := ""
+	if dir, derr := store.AvatarDir(); derr == nil {
+		ap := filepath.Join(dir, sanitizeID(p.JID)+".jpg")
+		if _, serr := os.Stat(ap); serr == nil {
+			avatarPath = ap
+		}
+	}
+	return map[string]any{
+		"jid":    p.JID,
+		"name":   name,
+		"phone":  "+" + jid.User,
+		"status": status,
+		"avatar": avatarPath,
+	}, nil
+}
+
 // SetPinned pins or unpins a chat so it sorts to the top of the list.
 func (e *Engine) SetPinned(p ipc.SetPinnedParams) (interface{}, error) {
 	if err := e.db.SetPinned(p.JID, p.Pinned); err != nil {

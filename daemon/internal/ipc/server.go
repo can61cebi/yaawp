@@ -175,6 +175,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p GroupInfoParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.GroupInfo(p)
+	case MethodContactInfo:
+		var p ContactInfoParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.ContactInfo(p)
 	case MethodSetPinned:
 		var p SetPinnedParams
 		_ = json.Unmarshal(cmd.Params, &p)

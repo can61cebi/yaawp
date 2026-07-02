@@ -21,6 +21,7 @@ Controller::Controller(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::chatPresenceChanged, this, &Controller::onChatPresence);
     connect(ipc, &IpcClient::presenceChanged, this, &Controller::onPresence);
     connect(ipc, &IpcClient::groupInfoReceived, this, &Controller::onGroupInfoReceived);
+    connect(ipc, &IpcClient::contactInfoReceived, this, &Controller::onContactInfoReceived);
     connect(ipc, &IpcClient::starredReceived, this, &Controller::onStarredReceived);
 }
 
@@ -33,6 +34,17 @@ void Controller::onGroupInfoReceived(const QJsonObject &info)
 {
     m_groupInfo = info.toVariantMap();
     Q_EMIT groupInfoChanged();
+}
+
+void Controller::requestContactInfo(const QString &jid)
+{
+    m_ipc->requestContactInfo(jid);
+}
+
+void Controller::onContactInfoReceived(const QJsonObject &info)
+{
+    m_contactInfo = info.toVariantMap();
+    Q_EMIT contactInfoChanged();
 }
 
 void Controller::requestStarred()

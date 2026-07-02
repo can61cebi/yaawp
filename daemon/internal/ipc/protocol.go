@@ -30,6 +30,7 @@ const (
 	MethodSetActiveChat     = "set_active_chat"
 	MethodEditMessage       = "edit_message"
 	MethodGroupInfo         = "group_info"
+	MethodContactInfo       = "contact_info"
 	MethodSetPinned         = "set_pinned"
 	MethodSetMuted          = "set_muted"
 	MethodStarMessage       = "star_message"
@@ -194,6 +195,11 @@ type GroupInfoParams struct {
 	JID string `json:"jid"`
 }
 
+// ContactInfoParams requests the details of a one to one contact.
+type ContactInfoParams struct {
+	JID string `json:"jid"`
+}
+
 // SetPinnedParams pins or unpins a chat to the top of the list.
 type SetPinnedParams struct {
 	JID    string `json:"jid"`
@@ -240,6 +246,7 @@ type Backend interface {
 	SetActiveChat(p SetActiveChatParams) (interface{}, error)
 	EditMessage(p EditMessageParams) (interface{}, error)
 	GroupInfo(p GroupInfoParams) (interface{}, error)
+	ContactInfo(p ContactInfoParams) (interface{}, error)
 	SetPinned(p SetPinnedParams) (interface{}, error)
 	SetMuted(p SetMutedParams) (interface{}, error)
 	StarMessage(p StarMessageParams) (interface{}, error)
