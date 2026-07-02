@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QSet>
 #include <QString>
+#include <QVariantList>
 #include <QStringList>
 #include <QUrl>
 
@@ -94,6 +95,8 @@ public:
     // Find the next message (from fromRow, in the given direction, wrapping)
     // whose text matches query. Returns its row or -1.
     Q_INVOKABLE int searchFrom(const QString &query, int fromRow, bool forward) const;
+    // Return the rows of every message whose text matches query, ascending.
+    Q_INVOKABLE QVariantList matchRows(const QString &query) const;
 
     QString replyText() const { return m_replyText; }
     QString replySenderName() const { return m_replySenderName; }

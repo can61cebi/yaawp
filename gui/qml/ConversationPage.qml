@@ -15,7 +15,9 @@ Kirigami.Page {
     property var forwardData: null
     property bool searchActive: false
     property string searchQuery: ""
-    property int searchRow: -1
+    property var searchMatches: []
+    property int searchIndex: -1
+    readonly property int searchCurrentRow: (searchIndex >= 0 && searchIndex < searchMatches.length) ? searchMatches[searchIndex] : -1
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
@@ -106,21 +108,35 @@ Kirigami.Page {
         forwardSheet.close()
     }
 
+    function refreshSearch() {
+        page.searchMatches = MessageModel.matchRows(page.searchQuery)
+        page.searchIndex = page.searchMatches.length > 0 ? 0 : -1
+        if (page.searchCurrentRow >= 0) {
+            messages.positionViewAtIndex(page.searchCurrentRow, ListView.Center)
+        }
+    }
+
     function gotoNextMatch(forward) {
-        if (page.searchQuery.length === 0) {
+        if (page.searchMatches.length === 0) {
             return
         }
-        const r = MessageModel.searchFrom(page.searchQuery, page.searchRow, forward)
-        if (r >= 0) {
-            page.searchRow = r
-            messages.positionViewAtIndex(r, ListView.Center)
+        let ni = forward ? page.searchIndex + 1 : page.searchIndex - 1
+        if (ni >= page.searchMatches.length) {
+            ni = 0
+            applicationWindow().showPassiveNotification("Reached the last match, back to the first")
+        } else if (ni < 0) {
+            ni = page.searchMatches.length - 1
+            applicationWindow().showPassiveNotification("Reached the first match, back to the last")
         }
+        page.searchIndex = ni
+        messages.positionViewAtIndex(page.searchCurrentRow, ListView.Center)
     }
 
     function closeSearch() {
         page.searchActive = false
         page.searchQuery = ""
-        page.searchRow = -1
+        page.searchMatches = []
+        page.searchIndex = -1
         searchField.text = ""
     }
 
@@ -577,6 +593,7 @@ Kirigami.Page {
         delegate: Item {
             id: row
 
+            required property int index
             required property bool fromMe
             required property string messageId
             required property string text
@@ -669,9 +686,11 @@ Kirigami.Page {
                         height: content.height + vpad * 2
                         radius: Kirigami.Units.largeSpacing
                         color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
-                        border.width: (page.searchActive && page.searchQuery.length > 0
-                                       && row.text.toLowerCase().indexOf(page.searchQuery.toLowerCase()) >= 0) ? 2 : 0
-                        border.color: Kirigami.Theme.neutralTextColor
+                        readonly property bool searchHit: page.searchActive && page.searchQuery.length > 0
+                                       && row.text.toLowerCase().indexOf(page.searchQuery.toLowerCase()) >= 0
+                        readonly property bool searchCurrent: page.searchActive && row.index === page.searchCurrentRow
+                        border.width: searchCurrent ? 2 : (searchHit ? 1 : 0)
+                        border.color: searchCurrent ? Kirigami.Theme.focusColor : Kirigami.Theme.neutralTextColor
 
                         TapHandler {
                             acceptedButtons: Qt.RightButton
@@ -912,8 +931,8 @@ Kirigami.Page {
                                 readOnly: true
                                 selectByMouse: true
                                 color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                                selectionColor: Kirigami.Theme.highlightColor
-                                selectedTextColor: Kirigami.Theme.highlightedTextColor
+                                selectionColor: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.highlightColor
+                                selectedTextColor: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.highlightedTextColor
 
                                 // Links open only while Ctrl is held, so a plain drag can select
                                 // text starting anywhere inside a URL rather than opening it.
@@ -1056,20 +1075,27 @@ Kirigami.Page {
                 placeholderText: "Search in chat"
                 onTextChanged: {
                     page.searchQuery = text
-                    page.searchRow = -1
-                    page.gotoNextMatch(true)
+                    page.refreshSearch()
                 }
                 onAccepted: page.gotoNextMatch(true)
                 Keys.onEscapePressed: page.closeSearch()
             }
+            QQC2.Label {
+                visible: page.searchQuery.length > 0
+                text: page.searchMatches.length > 0
+                      ? ((page.searchIndex + 1) + " / " + page.searchMatches.length)
+                      : "No results"
+                color: page.searchMatches.length > 0 ? Kirigami.Theme.textColor : Kirigami.Theme.neutralTextColor
+                opacity: 0.85
+            }
             QQC2.ToolButton {
                 icon.name: "go-up"
-                enabled: page.searchQuery.length > 0
+                enabled: page.searchMatches.length > 0
                 onClicked: page.gotoNextMatch(true)
             }
             QQC2.ToolButton {
                 icon.name: "go-down"
-                enabled: page.searchQuery.length > 0
+                enabled: page.searchMatches.length > 0
                 onClicked: page.gotoNextMatch(false)
             }
             QQC2.ToolButton {

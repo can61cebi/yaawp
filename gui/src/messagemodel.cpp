@@ -261,6 +261,20 @@ int MessageModel::searchFrom(const QString &query, int fromRow, bool forward) co
     return -1;
 }
 
+QVariantList MessageModel::matchRows(const QString &query) const
+{
+    QVariantList rows;
+    if (query.isEmpty()) {
+        return rows;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).text.contains(query, Qt::CaseInsensitive)) {
+            rows.append(i);
+        }
+    }
+    return rows;
+}
+
 void MessageModel::toggleStar(const QString &id)
 {
     for (int i = 0; i < m_messages.size(); ++i) {
