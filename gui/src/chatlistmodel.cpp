@@ -83,17 +83,22 @@ void ChatListModel::upsert(const QString &jid, const QString &preview, qint64 ts
     if (existing >= 0) {
         m_chats[existing].lastPreview = preview;
         m_chats[existing].lastTs = ts;
-        const QModelIndex idx = index(existing);
+        // Move the chat to the top so the most recent conversation leads.
+        if (existing != 0) {
+            beginMoveRows({}, existing, existing, {}, 0);
+            m_chats.move(existing, 0);
+            endMoveRows();
+        }
+        const QModelIndex idx = index(0);
         Q_EMIT dataChanged(idx, idx);
         return;
     }
-    const int row = static_cast<int>(m_chats.size());
-    beginInsertRows({}, row, row);
+    beginInsertRows({}, 0, 0);
     ChatItem item;
     item.jid = jid;
     item.lastPreview = preview;
     item.lastTs = ts;
-    m_chats.append(item);
+    m_chats.prepend(item);
     endInsertRows();
 }
 

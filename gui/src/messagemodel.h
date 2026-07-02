@@ -12,10 +12,12 @@ class IpcClient;
 struct MessageItem {
     QString id;
     QString senderJid;
+    QString senderName;
     bool fromMe = false;
     qint64 timestamp = 0;
     QString text;
     QString status;
+    bool pending = false; // local echo awaiting the server copy
 };
 
 // MessageModel holds the messages of the currently open chat. History is loaded
@@ -28,6 +30,7 @@ public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
         SenderRole,
+        SenderNameRole,
         FromMeRole,
         TimestampRole,
         TextRole,

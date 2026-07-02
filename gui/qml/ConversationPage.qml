@@ -8,6 +8,7 @@ Kirigami.ScrollablePage {
 
     property string chatTitle: "Conversation"
     property bool typingActive: false
+    readonly property bool isGroup: Controller.currentChatJid.endsWith("@g.us")
     title: chatTitle
 
     function sendCurrent() {
@@ -34,6 +35,14 @@ Kirigami.ScrollablePage {
             Ipc.setTyping(Controller.currentChatJid, false)
             page.typingActive = false
         }
+    }
+
+    function senderColor(key) {
+        var hash = 0
+        for (var i = 0; i < key.length; i++) {
+            hash = (hash * 31 + key.charCodeAt(i)) % 360
+        }
+        return Qt.hsla(hash / 360, 0.55, 0.6, 1)
     }
 
     Component.onDestruction: page.stopTyping()
@@ -122,6 +131,7 @@ Kirigami.ScrollablePage {
             required property string text
             required property var timestamp
             required property string status
+            required property string senderName
 
             width: messages.width
             implicitHeight: bubble.height
@@ -131,9 +141,11 @@ Kirigami.ScrollablePage {
 
                 readonly property int hpad: Kirigami.Units.largeSpacing
                 readonly property int vpad: Kirigami.Units.smallSpacing + 2
+                readonly property bool showSender: page.isGroup && !row.fromMe && row.senderName.length > 0
                 readonly property real maxContent: messages.width * 0.72 - hpad * 2
                 readonly property real contentWidth: Math.max(Math.min(textLabel.implicitWidth, maxContent),
-                                                              metaRow.implicitWidth)
+                                                              metaRow.implicitWidth,
+                                                              showSender ? Math.min(senderLabel.implicitWidth, maxContent) : 0)
 
                 anchors.left: row.fromMe ? undefined : parent.left
                 anchors.right: row.fromMe ? parent.right : undefined
@@ -141,14 +153,27 @@ Kirigami.ScrollablePage {
                 anchors.rightMargin: Kirigami.Units.largeSpacing
 
                 width: contentWidth + hpad * 2
-                height: textLabel.height + metaRow.height + vpad * 2
+                height: (showSender ? senderLabel.height : 0) + textLabel.height + metaRow.height + vpad * 2
                 radius: Kirigami.Units.largeSpacing
                 color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
 
                 QQC2.Label {
-                    id: textLabel
+                    id: senderLabel
+                    visible: bubble.showSender
                     x: bubble.hpad
                     y: bubble.vpad
+                    width: bubble.contentWidth
+                    text: row.senderName
+                    font.bold: true
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    elide: Text.ElideRight
+                    color: page.senderColor(row.senderName)
+                }
+
+                QQC2.Label {
+                    id: textLabel
+                    x: bubble.hpad
+                    y: bubble.showSender ? senderLabel.y + senderLabel.height : bubble.vpad
                     width: bubble.contentWidth
                     text: row.text
                     textFormat: Text.PlainText

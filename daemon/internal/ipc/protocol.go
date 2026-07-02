@@ -104,10 +104,11 @@ type Chat struct {
 }
 
 type Message struct {
-	ID        string `json:"id"`
-	ChatJID   string `json:"chat_jid"`
-	SenderJID string `json:"sender_jid"`
-	FromMe    bool   `json:"from_me"`
+	ID         string `json:"id"`
+	ChatJID    string `json:"chat_jid"`
+	SenderJID  string `json:"sender_jid"`
+	SenderName string `json:"sender_name,omitempty"`
+	FromMe     bool   `json:"from_me"`
 	Timestamp int64  `json:"timestamp"`
 	Type      string `json:"type"` // text, image, audio, and so on
 	Text      string `json:"text,omitempty"`

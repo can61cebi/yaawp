@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
+import org.kde.kirigamiaddons.components as KirigamiComponents
 
 Kirigami.Page {
     id: page
@@ -45,19 +46,30 @@ Kirigami.Page {
                     required property string name
                     required property string lastPreview
 
-                    contentItem: ColumnLayout {
-                        spacing: 0
-                        QQC2.Label {
-                            Layout.fillWidth: true
-                            text: item.name
-                            font.bold: true
-                            elide: Text.ElideRight
+                    contentItem: RowLayout {
+                        spacing: Kirigami.Units.largeSpacing
+
+                        KirigamiComponents.Avatar {
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                            name: item.name
                         }
-                        QQC2.Label {
+
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            text: item.lastPreview
-                            opacity: 0.7
-                            elide: Text.ElideRight
+                            spacing: 0
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                text: item.name
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                text: item.lastPreview
+                                opacity: 0.7
+                                elide: Text.ElideRight
+                            }
                         }
                     }
 

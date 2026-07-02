@@ -5,6 +5,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -264,7 +265,26 @@ func (e *Engine) resolveContactName(jidStr string) string {
 }
 
 func (e *Engine) ListMessages(p ipc.ListMessagesParams) (interface{}, error) {
-	return e.db.ListMessages(p.ChatJID, p.Limit)
+	msgs, err := e.db.ListMessages(p.ChatJID, p.Limit)
+	if err != nil {
+		return nil, err
+	}
+	// For group chats, fill in each sender's display name (cached per sender).
+	if strings.HasSuffix(p.ChatJID, "@"+types.GroupServer) {
+		names := map[string]string{}
+		for i := range msgs {
+			if msgs[i].FromMe || msgs[i].SenderJID == "" {
+				continue
+			}
+			name, seen := names[msgs[i].SenderJID]
+			if !seen {
+				name = e.resolveContactName(msgs[i].SenderJID)
+				names[msgs[i].SenderJID] = name
+			}
+			msgs[i].SenderName = name
+		}
+	}
+	return msgs, nil
 }
 
 func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
@@ -277,8 +297,9 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Persist the outgoing message so it survives restarts.
-	_ = e.db.PutMessage(ipc.Message{
+	// Persist the outgoing message and broadcast it so every client (chat list
+	// preview, ordering, and open conversation) updates consistently.
+	sent := ipc.Message{
 		ID:        resp.ID,
 		ChatJID:   p.ChatJID,
 		FromMe:    true,
@@ -286,7 +307,9 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 		Type:      "text",
 		Text:      p.Text,
 		Status:    "sent",
-	})
+	}
+	_ = e.db.PutMessage(sent)
+	e.emit(ipc.NewEvent(ipc.EventMessage, sent))
 	return map[string]any{"message_id": resp.ID, "timestamp": resp.Timestamp.Unix()}, nil
 }
 

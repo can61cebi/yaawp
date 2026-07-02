@@ -143,14 +143,15 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 		status = "sent"
 	}
 	return ipc.Message{
-		ID:        evt.Info.ID,
-		ChatJID:   e.canonicalJID(evt.Info.Chat.String()),
-		SenderJID: e.canonicalJID(evt.Info.Sender.String()),
-		FromMe:    evt.Info.IsFromMe,
-		Timestamp: evt.Info.Timestamp.Unix(),
-		Type:      typ,
-		Text:      text,
-		Status:    status,
+		ID:         evt.Info.ID,
+		ChatJID:    e.canonicalJID(evt.Info.Chat.String()),
+		SenderJID:  e.canonicalJID(evt.Info.Sender.String()),
+		SenderName: evt.Info.PushName,
+		FromMe:     evt.Info.IsFromMe,
+		Timestamp:  evt.Info.Timestamp.Unix(),
+		Type:       typ,
+		Text:       text,
+		Status:     status,
 	}, true
 }
 

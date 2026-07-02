@@ -33,6 +33,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.id;
     case SenderRole:
         return m.senderJid;
+    case SenderNameRole:
+        return m.senderName;
     case FromMeRole:
         return m.fromMe;
     case TimestampRole:
@@ -53,6 +55,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
     return {
         {IdRole, "messageId"},
         {SenderRole, "sender"},
+        {SenderNameRole, "senderName"},
         {FromMeRole, "fromMe"},
         {TimestampRole, "timestamp"},
         {TextRole, "text"},
@@ -79,11 +82,14 @@ void MessageModel::sendText(const QString &text)
     }
     m_ipc->sendText(m_chatJid, text);
 
-    // Local echo; the server message and receipt reconcile this later.
+    // Local echo for instant feedback. The daemon broadcasts the stored copy,
+    // which reconciles this entry (see onMessageReceived).
     MessageItem item;
     item.fromMe = true;
     item.text = text;
+    item.status = QStringLiteral("sent");
     item.timestamp = QDateTime::currentSecsSinceEpoch();
+    item.pending = true;
     append(item);
 }
 
@@ -92,6 +98,7 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     MessageItem item;
     item.id = o.value(QStringLiteral("id")).toString();
     item.senderJid = o.value(QStringLiteral("sender_jid")).toString();
+    item.senderName = o.value(QStringLiteral("sender_name")).toString();
     item.fromMe = o.value(QStringLiteral("from_me")).toBool();
     item.timestamp = static_cast<qint64>(o.value(QStringLiteral("timestamp")).toDouble());
     item.text = o.value(QStringLiteral("text")).toString();
@@ -99,18 +106,17 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     return item;
 }
 
-void MessageModel::onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status)
+QString MessageModel::dayLabel(qint64 timestamp) const
 {
-    if (chatJid != m_chatJid) {
-        return;
+    const QDate date = QDateTime::fromSecsSinceEpoch(timestamp).date();
+    const QDate today = QDate::currentDate();
+    if (date == today) {
+        return QStringLiteral("Today");
     }
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (ids.contains(m_messages.at(i).id)) {
-            m_messages[i].status = status;
-            const QModelIndex idx = index(i);
-            Q_EMIT dataChanged(idx, idx, {StatusRole});
-        }
+    if (date == today.addDays(-1)) {
+        return QStringLiteral("Yesterday");
     }
+    return QLocale().toString(date, QLocale::LongFormat);
 }
 
 void MessageModel::onMessagesReceived(const QJsonArray &messages)
@@ -151,32 +157,48 @@ void MessageModel::append(const MessageItem &item)
     endInsertRows();
 }
 
-QString MessageModel::dayLabel(qint64 timestamp) const
-{
-    const QDate date = QDateTime::fromSecsSinceEpoch(timestamp).date();
-    const QDate today = QDate::currentDate();
-    if (date == today) {
-        return QStringLiteral("Today");
-    }
-    if (date == today.addDays(-1)) {
-        return QStringLiteral("Yesterday");
-    }
-    return QLocale().toString(date, QLocale::LongFormat);
-}
-
 void MessageModel::onMessageReceived(const QJsonObject &message)
 {
     if (message.value(QStringLiteral("chat_jid")).toString() != m_chatJid) {
         return;
     }
-    const MessageItem item = fromJson(message);
+    MessageItem item = fromJson(message);
     if (item.text.isEmpty()) {
         return;
     }
+
+    // Reconcile with a pending local echo of an outgoing message.
+    if (item.fromMe) {
+        for (int i = m_messages.size() - 1; i >= 0; --i) {
+            if (m_messages.at(i).pending && m_messages.at(i).fromMe
+                && m_messages.at(i).text == item.text) {
+                item.pending = false;
+                m_messages[i] = item;
+                const QModelIndex idx = index(i);
+                Q_EMIT dataChanged(idx, idx);
+                return;
+            }
+        }
+    }
+
     append(item);
 
     // The chat is open, so mark an incoming message as read right away.
     if (!item.fromMe && !item.id.isEmpty()) {
         m_ipc->markRead(m_chatJid, {item.id});
+    }
+}
+
+void MessageModel::onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status)
+{
+    if (chatJid != m_chatJid) {
+        return;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (ids.contains(m_messages.at(i).id)) {
+            m_messages[i].status = status;
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {StatusRole});
+        }
     }
 }
