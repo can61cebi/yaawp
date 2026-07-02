@@ -113,6 +113,12 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
     } else if (event == QStringLiteral("message_revoked")) {
         Q_EMIT messageRevoked(data.value(QStringLiteral("chat_jid")).toString(),
                               data.value(QStringLiteral("message_id")).toString());
+    } else if (event == QStringLiteral("reaction")) {
+        Q_EMIT reactionReceived(data.value(QStringLiteral("chat_jid")).toString(),
+                                data.value(QStringLiteral("message_id")).toString(),
+                                data.value(QStringLiteral("sender_jid")).toString(),
+                                data.value(QStringLiteral("emoji")).toString(),
+                                data.value(QStringLiteral("from_me")).toBool());
     }
     Q_EMIT eventReceived(event, data);
 }
@@ -202,6 +208,17 @@ void IpcClient::deleteMessage(const QString &chatJid, const QString &id)
     p.insert(QStringLiteral("chat_jid"), chatJid);
     p.insert(QStringLiteral("message_id"), id);
     send(QStringLiteral("delete_message"), p);
+}
+
+void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("message_id"), messageId);
+    p.insert(QStringLiteral("sender_jid"), senderJid);
+    p.insert(QStringLiteral("from_me"), fromMe);
+    p.insert(QStringLiteral("emoji"), emoji);
+    send(QStringLiteral("send_reaction"), p);
 }
 
 void IpcClient::markRead(const QString &chatJid, const QStringList &ids)

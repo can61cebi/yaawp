@@ -24,6 +24,7 @@ const (
 	MethodSetTyping         = "set_typing"
 	MethodSubscribePresence = "subscribe_presence"
 	MethodDeleteMessage     = "delete_message"
+	MethodSendReaction      = "send_reaction"
 )
 
 // Event names (daemon to GUI).
@@ -39,6 +40,7 @@ const (
 	EventMessageStatus  = "message_status"
 	EventMessageMedia   = "message_media"
 	EventMessageRevoked = "message_revoked"
+	EventReaction       = "reaction"
 )
 
 // Command is a request from a GUI client.
@@ -102,6 +104,14 @@ type DeleteMessageParams struct {
 	MessageID string `json:"message_id"`
 }
 
+type SendReactionParams struct {
+	ChatJID   string `json:"chat_jid"`
+	MessageID string `json:"message_id"`
+	SenderJID string `json:"sender_jid"`
+	FromMe    bool   `json:"from_me"`
+	Emoji     string `json:"emoji"`
+}
+
 type Chat struct {
 	JID         string `json:"jid"`
 	Name        string `json:"name"`
@@ -122,6 +132,8 @@ type Message struct {
 	Text      string `json:"text,omitempty"`
 	Status    string `json:"status,omitempty"`     // sent, delivered, read (outgoing only)
 	MediaPath string `json:"media_path,omitempty"` // local cache path for downloaded media
+
+	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
 }
 
 // Backend is implemented by the engine. The IPC server dispatches commands to
@@ -140,4 +152,5 @@ type Backend interface {
 	SetTyping(p SetTypingParams) (interface{}, error)
 	SubscribePresence(p SubscribePresenceParams) (interface{}, error)
 	DeleteMessage(p DeleteMessageParams) (interface{}, error)
+	SendReaction(p SendReactionParams) (interface{}, error)
 }

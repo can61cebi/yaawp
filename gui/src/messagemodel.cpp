@@ -14,6 +14,7 @@ MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::messageStatusChanged, this, &MessageModel::onMessageStatus);
     connect(ipc, &IpcClient::messageMediaChanged, this, &MessageModel::onMessageMedia);
     connect(ipc, &IpcClient::messageRevoked, this, &MessageModel::onMessageRevoked);
+    connect(ipc, &IpcClient::reactionReceived, this, &MessageModel::onReaction);
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -51,6 +52,15 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.status;
     case MediaPathRole:
         return m.mediaPath;
+    case ReactionsRole: {
+        QStringList distinct;
+        for (const QString &emoji : m.reactions) {
+            if (!emoji.isEmpty() && !distinct.contains(emoji)) {
+                distinct.append(emoji);
+            }
+        }
+        return distinct.join(QString());
+    }
     default:
         return {};
     }
@@ -69,6 +79,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {DayRole, "day"},
         {StatusRole, "status"},
         {MediaPathRole, "mediaPath"},
+        {ReactionsRole, "reactions"},
     };
 }
 
@@ -108,6 +119,16 @@ void MessageModel::deleteMessage(const QString &id)
     }
 }
 
+void MessageModel::react(const QString &messageId, const QString &emoji)
+{
+    for (const MessageItem &m : m_messages) {
+        if (m.id == messageId) {
+            m_ipc->sendReaction(m_chatJid, messageId, m.senderJid, m.fromMe, emoji);
+            return;
+        }
+    }
+}
+
 MessageItem MessageModel::fromJson(const QJsonObject &o) const
 {
     MessageItem item;
@@ -120,6 +141,10 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.type = o.value(QStringLiteral("type")).toString();
     item.status = o.value(QStringLiteral("status")).toString();
     item.mediaPath = o.value(QStringLiteral("media_path")).toString();
+    const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();
+    for (auto it = reacts.constBegin(); it != reacts.constEnd(); ++it) {
+        item.reactions.insert(it.key(), it.value().toString());
+    }
     return item;
 }
 
@@ -247,6 +272,26 @@ void MessageModel::onMessageRevoked(const QString &chatJid, const QString &id)
             m_messages[i].mediaPath.clear();
             const QModelIndex idx = index(i);
             Q_EMIT dataChanged(idx, idx);
+            return;
+        }
+    }
+}
+
+void MessageModel::onReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, const QString &emoji, bool fromMe)
+{
+    Q_UNUSED(fromMe)
+    if (chatJid != m_chatJid) {
+        return;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).id == messageId) {
+            if (emoji.isEmpty()) {
+                m_messages[i].reactions.remove(senderJid);
+            } else {
+                m_messages[i].reactions.insert(senderJid, emoji);
+            }
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {ReactionsRole});
             return;
         }
     }

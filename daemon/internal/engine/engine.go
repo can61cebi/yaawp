@@ -287,6 +287,14 @@ func (e *Engine) ListMessages(p ipc.ListMessagesParams) (interface{}, error) {
 			msgs[i].SenderName = name
 		}
 	}
+	// Attach reactions to their messages.
+	if reacts, err := e.db.ReactionsForChat(p.ChatJID); err == nil {
+		for i := range msgs {
+			if r := reacts[msgs[i].ID]; len(r) > 0 {
+				msgs[i].Reactions = r
+			}
+		}
+	}
 	return msgs, nil
 }
 
@@ -439,6 +447,43 @@ func (e *Engine) DeleteMessage(p ipc.DeleteMessageParams) (interface{}, error) {
 	e.emit(ipc.NewEvent(ipc.EventMessageRevoked, map[string]any{
 		"chat_jid":   p.ChatJID,
 		"message_id": p.MessageID,
+	}))
+	return map[string]any{"ok": true}, nil
+}
+
+// SendReaction reacts to a message with an emoji, or removes the reaction when
+// the emoji is empty.
+func (e *Engine) SendReaction(p ipc.SendReactionParams) (interface{}, error) {
+	chat, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	var sender types.JID
+	switch {
+	case p.FromMe && e.client.Store.ID != nil:
+		sender = *e.client.Store.ID
+	case p.SenderJID != "":
+		if sender, err = types.ParseJID(p.SenderJID); err != nil {
+			return nil, fmt.Errorf("invalid sender: %w", err)
+		}
+	default:
+		sender = chat
+	}
+	reaction := e.client.BuildReaction(chat, sender, types.MessageID(p.MessageID), p.Emoji)
+	if _, err := e.client.SendMessage(e.ctx, chat, reaction); err != nil {
+		return nil, err
+	}
+	ownID := ""
+	if e.client.Store.ID != nil {
+		ownID = e.client.Store.ID.ToNonAD().String()
+	}
+	_ = e.db.PutReaction(p.ChatJID, p.MessageID, ownID, p.Emoji)
+	e.emit(ipc.NewEvent(ipc.EventReaction, map[string]any{
+		"chat_jid":   p.ChatJID,
+		"message_id": p.MessageID,
+		"sender_jid": ownID,
+		"emoji":      p.Emoji,
+		"from_me":    true,
 	}))
 	return map[string]any{"ok": true}, nil
 }

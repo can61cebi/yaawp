@@ -135,6 +135,7 @@ Kirigami.ScrollablePage {
             required property var timestamp
             required property string status
             required property string senderName
+            required property string reactions
 
             width: messages.width
             implicitHeight: bubble.height
@@ -155,6 +156,8 @@ Kirigami.ScrollablePage {
                         w = Math.max(w, Math.min(senderLabel.implicitWidth, maxContent))
                     if (hasMedia)
                         w = Math.max(w, mediaImage.width)
+                    if (row.reactions.length > 0)
+                        w = Math.max(w, reactionsLabel.implicitWidth)
                     return w
                 }
 
@@ -179,6 +182,16 @@ Kirigami.ScrollablePage {
 
                 QQC2.Menu {
                     id: contextMenu
+                    QQC2.Menu {
+                        title: "React"
+                        QQC2.MenuItem { text: "\u{1F44D}"; onTriggered: MessageModel.react(row.messageId, text) }
+                        QQC2.MenuItem { text: "❤️"; onTriggered: MessageModel.react(row.messageId, text) }
+                        QQC2.MenuItem { text: "\u{1F602}"; onTriggered: MessageModel.react(row.messageId, text) }
+                        QQC2.MenuItem { text: "\u{1F62E}"; onTriggered: MessageModel.react(row.messageId, text) }
+                        QQC2.MenuItem { text: "\u{1F622}"; onTriggered: MessageModel.react(row.messageId, text) }
+                        QQC2.MenuItem { text: "\u{1F64F}"; onTriggered: MessageModel.react(row.messageId, text) }
+                        QQC2.MenuItem { text: "Remove"; onTriggered: MessageModel.react(row.messageId, "") }
+                    }
                     QQC2.MenuItem {
                         text: "Copy"
                         visible: row.text.length > 0 && row.type !== "revoked"
@@ -233,6 +246,14 @@ Kirigami.ScrollablePage {
                         opacity: revoked ? 0.7 : 1.0
                         textFormat: Text.PlainText
                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                    }
+
+                    QQC2.Label {
+                        id: reactionsLabel
+                        visible: row.reactions.length > 0
+                        text: row.reactions
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
                         color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                     }
 

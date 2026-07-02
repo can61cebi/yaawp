@@ -38,6 +38,13 @@ CREATE TABLE IF NOT EXISTS messages (
     PRIMARY KEY (chat_jid, id)
 );
 CREATE INDEX IF NOT EXISTS idx_messages_chat_ts ON messages (chat_jid, ts);
+CREATE TABLE IF NOT EXISTS reactions (
+    chat_jid   TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    sender_jid TEXT NOT NULL,
+    emoji      TEXT NOT NULL,
+    PRIMARY KEY (chat_jid, message_id, sender_jid)
+);
 `
 
 const insertMessageSQL = `INSERT OR IGNORE INTO messages
@@ -136,6 +143,44 @@ func (d *DB) UpdateStatus(chatJID string, ids []string, status string) error {
 	}
 	_, err := d.sql.Exec(query, args...)
 	return err
+}
+
+// PutReaction stores or removes a reaction. An empty emoji removes it.
+func (d *DB) PutReaction(chatJID, messageID, senderJID, emoji string) error {
+	if emoji == "" {
+		_, err := d.sql.Exec(
+			`DELETE FROM reactions WHERE chat_jid = ? AND message_id = ? AND sender_jid = ?`,
+			chatJID, messageID, senderJID)
+		return err
+	}
+	_, err := d.sql.Exec(
+		`INSERT INTO reactions (chat_jid, message_id, sender_jid, emoji) VALUES (?, ?, ?, ?)
+		 ON CONFLICT(chat_jid, message_id, sender_jid) DO UPDATE SET emoji = excluded.emoji`,
+		chatJID, messageID, senderJID, emoji)
+	return err
+}
+
+// ReactionsForChat returns a map of message id to sender jid to emoji.
+func (d *DB) ReactionsForChat(chatJID string) (map[string]map[string]string, error) {
+	rows, err := d.sql.Query(
+		`SELECT message_id, sender_jid, emoji FROM reactions WHERE chat_jid = ?`, chatJID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := map[string]map[string]string{}
+	for rows.Next() {
+		var mid, sender, emoji string
+		if err := rows.Scan(&mid, &sender, &emoji); err != nil {
+			return nil, err
+		}
+		if out[mid] == nil {
+			out[mid] = map[string]string{}
+		}
+		out[mid][sender] = emoji
+	}
+	return out, rows.Err()
 }
 
 // MarkRevoked marks a message as deleted for everyone.

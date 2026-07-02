@@ -152,6 +152,21 @@ func (e *Engine) handleSpecialMessage(evt *events.Message) bool {
 		}))
 		return true
 	}
+	if r := m.GetReactionMessage(); r != nil {
+		chatJID := e.canonicalJID(evt.Info.Chat.String())
+		targetID := r.GetKey().GetID()
+		senderJID := e.canonicalJID(evt.Info.Sender.String())
+		emoji := r.GetText()
+		_ = e.db.PutReaction(chatJID, targetID, senderJID, emoji)
+		e.emit(ipc.NewEvent(ipc.EventReaction, map[string]any{
+			"chat_jid":   chatJID,
+			"message_id": targetID,
+			"sender_jid": senderJID,
+			"emoji":      emoji,
+			"from_me":    evt.Info.IsFromMe,
+		}))
+		return true
+	}
 	return false
 }
 

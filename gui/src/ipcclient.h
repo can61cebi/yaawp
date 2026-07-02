@@ -30,6 +30,7 @@ public:
     Q_INVOKABLE void setTyping(const QString &chatJid, bool composing);
     Q_INVOKABLE void subscribePresence(const QString &jid);
     Q_INVOKABLE void deleteMessage(const QString &chatJid, const QString &id);
+    Q_INVOKABLE void sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji);
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:
@@ -46,6 +47,7 @@ Q_SIGNALS:
     void messageStatusChanged(const QString &chatJid, const QStringList &ids, const QString &status);
     void messageMediaChanged(const QString &chatJid, const QString &id, const QString &mediaPath);
     void messageRevoked(const QString &chatJid, const QString &id);
+    void reactionReceived(const QString &chatJid, const QString &messageId, const QString &senderJid, const QString &emoji, bool fromMe);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:

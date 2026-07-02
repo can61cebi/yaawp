@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 
@@ -19,6 +20,7 @@ struct MessageItem {
     QString type;
     QString status;
     QString mediaPath;
+    QMap<QString, QString> reactions; // sender jid -> emoji
     bool pending = false; // local echo awaiting the server copy
 };
 
@@ -40,6 +42,7 @@ public:
         DayRole,
         StatusRole,
         MediaPathRole,
+        ReactionsRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -51,6 +54,7 @@ public:
     Q_INVOKABLE void setChat(const QString &jid);
     Q_INVOKABLE void sendText(const QString &text);
     Q_INVOKABLE void deleteMessage(const QString &id);
+    Q_INVOKABLE void react(const QString &messageId, const QString &emoji);
 
 private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);
@@ -58,6 +62,7 @@ private Q_SLOTS:
     void onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status);
     void onMessageMedia(const QString &chatJid, const QString &id, const QString &mediaPath);
     void onMessageRevoked(const QString &chatJid, const QString &id);
+    void onReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, const QString &emoji, bool fromMe);
 
 private:
     void append(const MessageItem &item);
