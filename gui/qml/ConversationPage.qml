@@ -389,6 +389,7 @@ Kirigami.Page {
             required property string quotedText
             required property string daySeparator
             required property bool edited
+            required property bool starred
 
             width: messages.width
             implicitHeight: dcol.height
@@ -498,6 +499,12 @@ Kirigami.Page {
                                 visible: row.type !== "revoked" && (row.type === "text" || row.mediaPath.length > 0)
                                 height: visible ? implicitHeight : 0
                                 onTriggered: page.startForward(row.type, row.text, row.mediaPath)
+                            }
+                            QQC2.MenuItem {
+                                text: row.starred ? "Unstar" : "Star"
+                                visible: row.type !== "revoked"
+                                height: visible ? implicitHeight : 0
+                                onTriggered: MessageModel.toggleStar(row.messageId)
                             }
                             QQC2.MenuItem {
                                 text: "Copy"
@@ -646,6 +653,15 @@ Kirigami.Page {
                                     id: metaContent
                                     anchors.right: parent.right
                                     spacing: Kirigami.Units.smallSpacing
+
+                                    Kirigami.Icon {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: row.starred
+                                        source: "starred-symbolic"
+                                        width: Kirigami.Units.iconSizes.small
+                                        height: Kirigami.Units.iconSizes.small
+                                        opacity: 0.7
+                                    }
 
                                     QQC2.Label {
                                         anchors.verticalCenter: parent.verticalCenter

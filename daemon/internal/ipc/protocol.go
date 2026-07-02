@@ -32,6 +32,8 @@ const (
 	MethodGroupInfo         = "group_info"
 	MethodSetPinned         = "set_pinned"
 	MethodSetMuted          = "set_muted"
+	MethodStarMessage       = "star_message"
+	MethodListStarred       = "list_starred"
 )
 
 // Event names (daemon to GUI).
@@ -156,6 +158,8 @@ type Message struct {
 	MediaHeight int    `json:"media_h,omitempty"`
 	RawMedia    []byte `json:"-"` // marshaled protobuf of the media submessage, for on demand download
 	Edited      bool   `json:"edited,omitempty"` // true once the sender edited the message
+	Starred     bool   `json:"starred,omitempty"`
+	ChatName    string `json:"chat_name,omitempty"` // only set for cross chat lists like starred
 
 	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
 
@@ -200,6 +204,13 @@ type SetMutedParams struct {
 	Muted bool   `json:"muted"`
 }
 
+// StarMessageParams stars or unstars a message.
+type StarMessageParams struct {
+	ChatJID   string `json:"chat_jid"`
+	MessageID string `json:"message_id"`
+	Starred   bool   `json:"starred"`
+}
+
 // Backend is implemented by the engine. The IPC server dispatches commands to
 // it and returns a JSON-serialisable result or an error.
 type Backend interface {
@@ -224,4 +235,6 @@ type Backend interface {
 	GroupInfo(p GroupInfoParams) (interface{}, error)
 	SetPinned(p SetPinnedParams) (interface{}, error)
 	SetMuted(p SetMutedParams) (interface{}, error)
+	StarMessage(p StarMessageParams) (interface{}, error)
+	ListStarred() (interface{}, error)
 }

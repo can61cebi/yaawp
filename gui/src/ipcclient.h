@@ -39,6 +39,8 @@ public:
     Q_INVOKABLE void requestGroupInfo(const QString &jid);
     Q_INVOKABLE void setPinned(const QString &jid, bool pinned);
     Q_INVOKABLE void setMuted(const QString &jid, bool muted);
+    Q_INVOKABLE void starMessage(const QString &chatJid, const QString &id, bool starred);
+    Q_INVOKABLE void requestStarred();
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:
@@ -59,6 +61,7 @@ Q_SIGNALS:
     void chatUnreadChanged(const QString &chatJid, int unread);
     void messageEdited(const QString &chatJid, const QString &id, const QString &text);
     void groupInfoReceived(const QJsonObject &info);
+    void starredReceived(const QJsonArray &messages);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:

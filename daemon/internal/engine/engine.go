@@ -302,6 +302,19 @@ func (e *Engine) SetMuted(p ipc.SetMutedParams) (interface{}, error) {
 	return map[string]any{"ok": true}, nil
 }
 
+// StarMessage stars or unstars a message.
+func (e *Engine) StarMessage(p ipc.StarMessageParams) (interface{}, error) {
+	if err := e.db.SetStarred(p.ChatJID, p.MessageID, p.Starred); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
+}
+
+// ListStarred returns all starred messages across chats for the starred view.
+func (e *Engine) ListStarred() (interface{}, error) {
+	return e.db.ListStarred()
+}
+
 // resolveContactName looks up a cached display name for a user JID.
 func (e *Engine) resolveContactName(jidStr string) string {
 	jid, err := types.ParseJID(jidStr)

@@ -16,11 +16,68 @@ Kirigami.Page {
             onTriggered: Ipc.requestChats()
         },
         Kirigami.Action {
+            text: "Starred"
+            icon.name: "starred-symbolic"
+            onTriggered: {
+                Controller.requestStarred()
+                starredSheet.open()
+            }
+        },
+        Kirigami.Action {
             text: "Settings"
             icon.name: "configure"
             onTriggered: applicationWindow().showSettings()
         }
     ]
+
+    Kirigami.OverlaySheet {
+        id: starredSheet
+        title: "Starred messages"
+
+        ListView {
+            id: starredList
+            implicitWidth: Kirigami.Units.gridUnit * 24
+            model: Controller.starredMessages
+
+            delegate: QQC2.ItemDelegate {
+                id: starItem
+                width: ListView.view.width
+                required property var modelData
+                readonly property string chatLabel: (starItem.modelData.chat_name && starItem.modelData.chat_name.length > 0)
+                    ? starItem.modelData.chat_name : starItem.modelData.chat_jid
+
+                contentItem: ColumnLayout {
+                    spacing: 0
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        text: starItem.chatLabel
+                        font.bold: true
+                        elide: Text.ElideRight
+                    }
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        text: starItem.modelData.text
+                        opacity: 0.8
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        maximumLineCount: 3
+                        elide: Text.ElideRight
+                    }
+                }
+
+                onClicked: {
+                    starredSheet.close()
+                    applicationWindow().showConversation(starItem.modelData.chat_jid, starItem.chatLabel)
+                }
+            }
+
+            Kirigami.PlaceholderMessage {
+                anchors.centerIn: parent
+                width: parent.width - Kirigami.Units.gridUnit * 2
+                visible: starredList.count === 0
+                text: "No starred messages"
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent

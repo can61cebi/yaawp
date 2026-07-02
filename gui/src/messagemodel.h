@@ -28,6 +28,7 @@ struct MessageItem {
     QString quotedSender;
     QMap<QString, QString> reactions; // sender jid -> emoji
     bool edited = false;  // the sender edited this message
+    bool starred = false; // the user starred this message
     bool pending = false; // local echo awaiting the server copy
 };
 
@@ -58,6 +59,7 @@ public:
         ReactionsRole,
         QuotedTextRole,
         EditedRole,
+        StarredRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -78,6 +80,7 @@ public:
     // Open a message's attachment, downloading it on demand when not yet cached.
     Q_INVOKABLE void openMedia(const QString &id);
     Q_INVOKABLE void editMessage(const QString &id, const QString &text);
+    Q_INVOKABLE void toggleStar(const QString &id);
 
     QString replyText() const { return m_replyText; }
     QString replySenderName() const { return m_replySenderName; }

@@ -70,6 +70,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.quotedText;
     case EditedRole:
         return m.edited;
+    case StarredRole:
+        return m.starred;
     case DaySeparatorRole: {
         // Newest first: the older neighbour is at row + 1. Show the day label
         // above the oldest message of each day.
@@ -104,6 +106,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {ReactionsRole, "reactions"},
         {QuotedTextRole, "quotedText"},
         {EditedRole, "edited"},
+        {StarredRole, "starred"},
     };
 }
 
@@ -227,6 +230,20 @@ void MessageModel::editMessage(const QString &id, const QString &text)
     m_ipc->editMessage(m_chatJid, id, trimmed);
 }
 
+void MessageModel::toggleStar(const QString &id)
+{
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).id == id) {
+            const bool next = !m_messages.at(i).starred;
+            m_messages[i].starred = next;
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {StarredRole});
+            m_ipc->starMessage(m_chatJid, id, next);
+            return;
+        }
+    }
+}
+
 void MessageModel::onMessageEdited(const QString &chatJid, const QString &id, const QString &text)
 {
     if (chatJid != m_chatJid) {
@@ -275,6 +292,7 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.mediaWidth = o.value(QStringLiteral("media_w")).toInt();
     item.mediaHeight = o.value(QStringLiteral("media_h")).toInt();
     item.edited = o.value(QStringLiteral("edited")).toBool();
+    item.starred = o.value(QStringLiteral("starred")).toBool();
     item.quotedText = o.value(QStringLiteral("quoted_text")).toString();
     item.quotedSender = o.value(QStringLiteral("quoted_sender")).toString();
     const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();

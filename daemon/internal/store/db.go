@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS messages (
     media_h    INTEGER NOT NULL DEFAULT 0,
     raw_media  BLOB,
     edited     INTEGER NOT NULL DEFAULT 0,
+    starred    INTEGER NOT NULL DEFAULT 0,
     quoted_id     TEXT NOT NULL DEFAULT '',
     quoted_sender TEXT NOT NULL DEFAULT '',
     quoted_text   TEXT NOT NULL DEFAULT '',
@@ -102,6 +103,7 @@ func (d *DB) migrate() {
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN edited INTEGER NOT NULL DEFAULT 0`)
 	_, _ = d.sql.Exec(`ALTER TABLE chats ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`)
 	_, _ = d.sql.Exec(`ALTER TABLE chats ADD COLUMN muted INTEGER NOT NULL DEFAULT 0`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN starred INTEGER NOT NULL DEFAULT 0`)
 }
 
 // Close releases the database handle.
@@ -264,6 +266,38 @@ func (d *DB) SetMuted(jid string, muted bool) error {
 	return err
 }
 
+// SetStarred stars or unstars a message.
+func (d *DB) SetStarred(chatJID, id string, starred bool) error {
+	_, err := d.sql.Exec(`UPDATE messages SET starred = ? WHERE chat_jid = ? AND id = ?`, boolToInt(starred), chatJID, id)
+	return err
+}
+
+// ListStarred returns starred messages across all chats, newest first, with the
+// chat name attached for display.
+func (d *DB) ListStarred() ([]ipc.Message, error) {
+	rows, err := d.sql.Query(
+		`SELECT m.id, m.chat_jid, m.sender_jid, m.from_me, m.ts, m.type, m.text, m.media_path, COALESCE(c.name, '')
+		 FROM messages m LEFT JOIN chats c ON c.jid = m.chat_jid
+		 WHERE m.starred = 1 ORDER BY m.ts DESC LIMIT 200`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	msgs := []ipc.Message{}
+	for rows.Next() {
+		var m ipc.Message
+		var fromMe int
+		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.MediaPath, &m.ChatName); err != nil {
+			return nil, err
+		}
+		m.FromMe = fromMe != 0
+		m.Starred = true
+		msgs = append(msgs, m)
+	}
+	return msgs, rows.Err()
+}
+
 // SetChatName sets the display name and group flag for a chat.
 func (d *DB) SetChatName(jid, name string, isGroup bool) error {
 	_, err := d.sql.Exec(
@@ -306,7 +340,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 		limit = 50
 	}
 	rows, err := d.sql.Query(
-		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, edited, quoted_id, quoted_sender, quoted_text
+		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, edited, starred, quoted_id, quoted_sender, quoted_text
 		 FROM messages WHERE chat_jid = ? ORDER BY ts DESC LIMIT ?`,
 		chatJID, limit)
 	if err != nil {
@@ -317,12 +351,13 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 	msgs := []ipc.Message{}
 	for rows.Next() {
 		var m ipc.Message
-		var fromMe, edited int
-		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.MediaWidth, &m.MediaHeight, &edited, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
+		var fromMe, edited, starred int
+		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.MediaWidth, &m.MediaHeight, &edited, &starred, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
 			return nil, err
 		}
 		m.FromMe = fromMe != 0
 		m.Edited = edited != 0
+		m.Starred = starred != 0
 		msgs = append(msgs, m)
 	}
 	if err := rows.Err(); err != nil {

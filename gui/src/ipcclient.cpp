@@ -180,6 +180,8 @@ void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &res
         Q_EMIT messagesReceived(result.toArray());
     } else if (method == QStringLiteral("group_info")) {
         Q_EMIT groupInfoReceived(result.toObject());
+    } else if (method == QStringLiteral("list_starred")) {
+        Q_EMIT starredReceived(result.toArray());
     }
 }
 
@@ -307,6 +309,20 @@ void IpcClient::setMuted(const QString &jid, bool muted)
     p.insert(QStringLiteral("jid"), jid);
     p.insert(QStringLiteral("muted"), muted);
     send(QStringLiteral("set_muted"), p);
+}
+
+void IpcClient::starMessage(const QString &chatJid, const QString &id, bool starred)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("message_id"), id);
+    p.insert(QStringLiteral("starred"), starred);
+    send(QStringLiteral("star_message"), p);
+}
+
+void IpcClient::requestStarred()
+{
+    send(QStringLiteral("list_starred"), QJsonObject());
 }
 
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)

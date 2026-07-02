@@ -1,9 +1,11 @@
 #pragma once
 
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QVariantList>
 #include <QVariantMap>
 
 class IpcClient;
@@ -19,6 +21,7 @@ class Controller : public QObject
     Q_PROPERTY(QString currentChatJid READ currentChatJid WRITE setCurrentChatJid NOTIFY currentChatChanged)
     Q_PROPERTY(QString currentChatStatus READ currentChatStatus NOTIFY currentChatStatusChanged)
     Q_PROPERTY(QVariantMap groupInfo READ groupInfo NOTIFY groupInfoChanged)
+    Q_PROPERTY(QVariantList starredMessages READ starredMessages NOTIFY starredChanged)
 
 public:
     explicit Controller(IpcClient *ipc, QObject *parent = nullptr);
@@ -29,6 +32,7 @@ public:
     QString currentChatJid() const { return m_currentChatJid; }
     QString currentChatStatus() const { return m_currentChatStatus; }
     QVariantMap groupInfo() const { return m_groupInfo; }
+    QVariantList starredMessages() const { return m_starred; }
     void setCurrentChatJid(const QString &jid);
 
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
@@ -36,6 +40,7 @@ public:
     Q_INVOKABLE void saveScroll(const QString &jid, double contentY);
     Q_INVOKABLE double savedScroll(const QString &jid) const;
     Q_INVOKABLE void requestGroupInfo(const QString &jid);
+    Q_INVOKABLE void requestStarred();
 
 Q_SIGNALS:
     void connectionStateChanged();
@@ -43,6 +48,7 @@ Q_SIGNALS:
     void currentChatChanged();
     void currentChatStatusChanged();
     void groupInfoChanged();
+    void starredChanged();
 
 private Q_SLOTS:
     void onQrReceived(const QString &code);
@@ -52,6 +58,7 @@ private Q_SLOTS:
     void onChatPresence(const QString &chatJid, const QString &senderJid, const QString &state);
     void onPresence(const QString &jid, const QString &state, qint64 lastSeen);
     void onGroupInfoReceived(const QJsonObject &info);
+    void onStarredReceived(const QJsonArray &messages);
 
 private:
     void updateStatus();
@@ -66,4 +73,5 @@ private:
     qint64 m_lastSeen = 0;
     QHash<QString, double> m_scroll; // chat jid -> saved content y offset
     QVariantMap m_groupInfo;
+    QVariantList m_starred;
 };

@@ -183,6 +183,12 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p SetMutedParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.SetMuted(p)
+	case MethodStarMessage:
+		var p StarMessageParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.StarMessage(p)
+	case MethodListStarred:
+		result, err = s.backend.ListStarred()
 	default:
 		err = errUnknownMethod
 	}
