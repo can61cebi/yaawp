@@ -35,6 +35,9 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 			"push_name": e.client.Store.PushName,
 		}))
 	case *events.Message:
+		if e.handleSpecialMessage(evt) {
+			return
+		}
 		msg, ok := e.messageToIPC(evt)
 		if !ok {
 			return // non-renderable (protocol, reaction, empty)
@@ -130,6 +133,26 @@ func (e *Engine) persistHistory(data *waHistorySync.HistorySync) {
 	if total > 0 {
 		log.Printf("history sync: stored %d messages", total)
 	}
+}
+
+// handleSpecialMessage processes messages that are not plain content, such as
+// a revoke. It returns true when the message was fully handled.
+func (e *Engine) handleSpecialMessage(evt *events.Message) bool {
+	m := evt.Message
+	if m == nil {
+		return false
+	}
+	if pm := m.GetProtocolMessage(); pm != nil && pm.GetType() == waE2E.ProtocolMessage_REVOKE {
+		chatJID := e.canonicalJID(evt.Info.Chat.String())
+		targetID := pm.GetKey().GetID()
+		_ = e.db.MarkRevoked(chatJID, targetID)
+		e.emit(ipc.NewEvent(ipc.EventMessageRevoked, map[string]any{
+			"chat_jid":   chatJID,
+			"message_id": targetID,
+		}))
+		return true
+	}
+	return false
 }
 
 // messageToIPC converts a live message event. It returns ok=false for messages

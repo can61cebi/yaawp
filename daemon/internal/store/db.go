@@ -138,6 +138,14 @@ func (d *DB) UpdateStatus(chatJID string, ids []string, status string) error {
 	return err
 }
 
+// MarkRevoked marks a message as deleted for everyone.
+func (d *DB) MarkRevoked(chatJID, id string) error {
+	_, err := d.sql.Exec(
+		`UPDATE messages SET type = 'revoked', text = '', media_path = '' WHERE chat_jid = ? AND id = ?`,
+		chatJID, id)
+	return err
+}
+
 // UpdateMediaPath records the local cache path of a downloaded media message.
 func (d *DB) UpdateMediaPath(chatJID, id, path string) error {
 	_, err := d.sql.Exec(`UPDATE messages SET media_path = ? WHERE chat_jid = ? AND id = ?`, path, chatJID, id)

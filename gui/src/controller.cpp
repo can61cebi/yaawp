@@ -1,7 +1,9 @@
 #include "controller.h"
 #include "ipcclient.h"
 
+#include <QClipboard>
 #include <QDateTime>
+#include <QGuiApplication>
 
 Controller::Controller(IpcClient *ipc, QObject *parent)
     : QObject(parent)
@@ -85,6 +87,13 @@ void Controller::onPresence(const QString &jid, const QString &state, qint64 las
         m_lastSeen = lastSeen;
     }
     updateStatus();
+}
+
+void Controller::copyToClipboard(const QString &text) const
+{
+    if (QClipboard *clipboard = QGuiApplication::clipboard()) {
+        clipboard->setText(text);
+    }
 }
 
 void Controller::updateStatus()

@@ -27,6 +27,8 @@ public:
     QString currentChatStatus() const { return m_currentChatStatus; }
     void setCurrentChatJid(const QString &jid);
 
+    Q_INVOKABLE void copyToClipboard(const QString &text) const;
+
 Q_SIGNALS:
     void connectionStateChanged();
     void qrCodeChanged();

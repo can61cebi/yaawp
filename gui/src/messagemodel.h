@@ -50,12 +50,14 @@ public:
 
     Q_INVOKABLE void setChat(const QString &jid);
     Q_INVOKABLE void sendText(const QString &text);
+    Q_INVOKABLE void deleteMessage(const QString &id);
 
 private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);
     void onMessageReceived(const QJsonObject &message);
     void onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status);
     void onMessageMedia(const QString &chatJid, const QString &id, const QString &mediaPath);
+    void onMessageRevoked(const QString &chatJid, const QString &id);
 
 private:
     void append(const MessageItem &item);

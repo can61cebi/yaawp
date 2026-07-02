@@ -128,6 +128,7 @@ Kirigami.ScrollablePage {
             id: row
 
             required property bool fromMe
+            required property string messageId
             required property string text
             required property string type
             required property string mediaPath
@@ -148,7 +149,7 @@ Kirigami.ScrollablePage {
                 readonly property real maxContent: messages.width * 0.72 - hpad * 2
                 readonly property real contentW: {
                     var w = metaContent.implicitWidth
-                    if (row.text.length > 0)
+                    if (textLabel.visible)
                         w = Math.max(w, Math.min(textLabel.implicitWidth, maxContent))
                     if (showSender)
                         w = Math.max(w, Math.min(senderLabel.implicitWidth, maxContent))
@@ -166,6 +167,31 @@ Kirigami.ScrollablePage {
                 height: content.height + vpad * 2
                 radius: Kirigami.Units.largeSpacing
                 color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
+
+                TapHandler {
+                    acceptedButtons: Qt.RightButton
+                    onTapped: contextMenu.popup()
+                }
+                TapHandler {
+                    acceptedDevices: PointerDevice.TouchScreen
+                    onLongPressed: contextMenu.popup()
+                }
+
+                QQC2.Menu {
+                    id: contextMenu
+                    QQC2.MenuItem {
+                        text: "Copy"
+                        visible: row.text.length > 0 && row.type !== "revoked"
+                        height: visible ? implicitHeight : 0
+                        onTriggered: Controller.copyToClipboard(row.text)
+                    }
+                    QQC2.MenuItem {
+                        text: "Delete for everyone"
+                        visible: row.fromMe && row.type !== "revoked"
+                        height: visible ? implicitHeight : 0
+                        onTriggered: MessageModel.deleteMessage(row.messageId)
+                    }
+                }
 
                 Column {
                     id: content
@@ -199,9 +225,12 @@ Kirigami.ScrollablePage {
 
                     QQC2.Label {
                         id: textLabel
-                        visible: row.text.length > 0
+                        readonly property bool revoked: row.type === "revoked"
+                        visible: row.text.length > 0 || revoked
                         width: parent.width
-                        text: row.text
+                        text: revoked ? "This message was deleted" : row.text
+                        font.italic: revoked
+                        opacity: revoked ? 0.7 : 1.0
                         textFormat: Text.PlainText
                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor

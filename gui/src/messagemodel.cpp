@@ -13,6 +13,7 @@ MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::messageReceived, this, &MessageModel::onMessageReceived);
     connect(ipc, &IpcClient::messageStatusChanged, this, &MessageModel::onMessageStatus);
     connect(ipc, &IpcClient::messageMediaChanged, this, &MessageModel::onMessageMedia);
+    connect(ipc, &IpcClient::messageRevoked, this, &MessageModel::onMessageRevoked);
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -98,6 +99,13 @@ void MessageModel::sendText(const QString &text)
     item.timestamp = QDateTime::currentSecsSinceEpoch();
     item.pending = true;
     append(item);
+}
+
+void MessageModel::deleteMessage(const QString &id)
+{
+    if (!id.isEmpty()) {
+        m_ipc->deleteMessage(m_chatJid, id);
+    }
 }
 
 MessageItem MessageModel::fromJson(const QJsonObject &o) const
@@ -222,6 +230,23 @@ void MessageModel::onMessageMedia(const QString &chatJid, const QString &id, con
             m_messages[i].mediaPath = mediaPath;
             const QModelIndex idx = index(i);
             Q_EMIT dataChanged(idx, idx, {MediaPathRole});
+            return;
+        }
+    }
+}
+
+void MessageModel::onMessageRevoked(const QString &chatJid, const QString &id)
+{
+    if (chatJid != m_chatJid) {
+        return;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).id == id) {
+            m_messages[i].type = QStringLiteral("revoked");
+            m_messages[i].text.clear();
+            m_messages[i].mediaPath.clear();
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx);
             return;
         }
     }

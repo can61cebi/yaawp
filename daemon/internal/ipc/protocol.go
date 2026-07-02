@@ -23,6 +23,7 @@ const (
 	MethodMarkRead          = "mark_read"
 	MethodSetTyping         = "set_typing"
 	MethodSubscribePresence = "subscribe_presence"
+	MethodDeleteMessage     = "delete_message"
 )
 
 // Event names (daemon to GUI).
@@ -35,8 +36,9 @@ const (
 	EventPresence     = "presence"
 	EventHistorySync  = "history_sync"
 	EventChatPresence  = "chat_presence"
-	EventMessageStatus = "message_status"
-	EventMessageMedia  = "message_media"
+	EventMessageStatus  = "message_status"
+	EventMessageMedia   = "message_media"
+	EventMessageRevoked = "message_revoked"
 )
 
 // Command is a request from a GUI client.
@@ -95,6 +97,11 @@ type SubscribePresenceParams struct {
 	JID string `json:"jid"`
 }
 
+type DeleteMessageParams struct {
+	ChatJID   string `json:"chat_jid"`
+	MessageID string `json:"message_id"`
+}
+
 type Chat struct {
 	JID         string `json:"jid"`
 	Name        string `json:"name"`
@@ -132,4 +139,5 @@ type Backend interface {
 	MarkRead(p MarkReadParams) (interface{}, error)
 	SetTyping(p SetTypingParams) (interface{}, error)
 	SubscribePresence(p SubscribePresenceParams) (interface{}, error)
+	DeleteMessage(p DeleteMessageParams) (interface{}, error)
 }

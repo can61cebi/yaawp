@@ -110,6 +110,9 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
         Q_EMIT messageMediaChanged(data.value(QStringLiteral("chat_jid")).toString(),
                                    data.value(QStringLiteral("id")).toString(),
                                    data.value(QStringLiteral("media_path")).toString());
+    } else if (event == QStringLiteral("message_revoked")) {
+        Q_EMIT messageRevoked(data.value(QStringLiteral("chat_jid")).toString(),
+                              data.value(QStringLiteral("message_id")).toString());
     }
     Q_EMIT eventReceived(event, data);
 }
@@ -191,6 +194,14 @@ void IpcClient::subscribePresence(const QString &jid)
     QJsonObject p;
     p.insert(QStringLiteral("jid"), jid);
     send(QStringLiteral("subscribe_presence"), p);
+}
+
+void IpcClient::deleteMessage(const QString &chatJid, const QString &id)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("message_id"), id);
+    send(QStringLiteral("delete_message"), p);
 }
 
 void IpcClient::markRead(const QString &chatJid, const QStringList &ids)

@@ -424,3 +424,21 @@ func extFromMime(mime, def string) string {
 func sanitizeID(id string) string {
 	return strings.NewReplacer("/", "_", "\\", "_", ":", "_").Replace(id)
 }
+
+// DeleteMessage revokes one of our own messages for everyone.
+func (e *Engine) DeleteMessage(p ipc.DeleteMessageParams) (interface{}, error) {
+	chat, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	revoke := e.client.BuildRevoke(chat, types.EmptyJID, types.MessageID(p.MessageID))
+	if _, err := e.client.SendMessage(e.ctx, chat, revoke); err != nil {
+		return nil, err
+	}
+	_ = e.db.MarkRevoked(p.ChatJID, p.MessageID)
+	e.emit(ipc.NewEvent(ipc.EventMessageRevoked, map[string]any{
+		"chat_jid":   p.ChatJID,
+		"message_id": p.MessageID,
+	}))
+	return map[string]any{"ok": true}, nil
+}
