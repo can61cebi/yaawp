@@ -151,7 +151,45 @@ func (e *Engine) Logout() (interface{}, error) {
 }
 
 func (e *Engine) ListChats() (interface{}, error) {
-	return e.db.ListChats()
+	chats, err := e.db.ListChats()
+	if err != nil {
+		return nil, err
+	}
+	// Best effort: resolve display names for one-to-one chats from the
+	// contact store and cache them for next time.
+	for i := range chats {
+		if chats[i].Name != "" || chats[i].IsGroup {
+			continue
+		}
+		if name := e.resolveContactName(chats[i].JID); name != "" {
+			chats[i].Name = name
+			_ = e.db.SetChatName(chats[i].JID, name, false)
+		}
+	}
+	return chats, nil
+}
+
+// resolveContactName looks up a cached display name for a user JID.
+func (e *Engine) resolveContactName(jidStr string) string {
+	jid, err := types.ParseJID(jidStr)
+	if err != nil {
+		return ""
+	}
+	info, err := e.client.Store.Contacts.GetContact(e.ctx, jid)
+	if err != nil || !info.Found {
+		return ""
+	}
+	switch {
+	case info.FullName != "":
+		return info.FullName
+	case info.PushName != "":
+		return info.PushName
+	case info.BusinessName != "":
+		return info.BusinessName
+	case info.FirstName != "":
+		return info.FirstName
+	}
+	return ""
 }
 
 func (e *Engine) ListMessages(p ipc.ListMessagesParams) (interface{}, error) {

@@ -37,6 +37,16 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_chat_ts ON messages (chat_jid, ts);
 `
 
+const insertMessageSQL = `INSERT OR IGNORE INTO messages
+    (id, chat_jid, sender_jid, from_me, ts, type, text) VALUES (?, ?, ?, ?, ?, ?, ?)`
+
+// updateChatSQL advances a chat summary only when the incoming message is at
+// least as recent as the stored one.
+const updateChatSQL = `INSERT INTO chats (jid, last_ts, last_preview) VALUES (?, ?, ?)
+    ON CONFLICT(jid) DO UPDATE SET
+      last_ts = CASE WHEN excluded.last_ts >= chats.last_ts THEN excluded.last_ts ELSE chats.last_ts END,
+      last_preview = CASE WHEN excluded.last_ts >= chats.last_ts THEN excluded.last_preview ELSE chats.last_preview END`
+
 // OpenDB opens the application database under the XDG data directory and
 // applies the schema.
 func OpenDB() (*DB, error) {
@@ -59,30 +69,42 @@ func OpenDB() (*DB, error) {
 // Close releases the database handle.
 func (d *DB) Close() error { return d.sql.Close() }
 
-// PutMessage inserts a message and refreshes its chat summary row.
+// PutMessage inserts a single message and refreshes its chat summary.
 func (d *DB) PutMessage(m ipc.Message) error {
+	return d.PutMessages([]ipc.Message{m})
+}
+
+// PutMessages inserts many messages and refreshes chat summaries in one
+// transaction. This keeps bulk history sync fast.
+func (d *DB) PutMessages(msgs []ipc.Message) error {
+	if len(msgs) == 0 {
+		return nil
+	}
 	tx, err := d.sql.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err := tx.Exec(
-		`INSERT OR IGNORE INTO messages (id, chat_jid, sender_jid, from_me, ts, type, text)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text,
-	); err != nil {
+	insMsg, err := tx.Prepare(insertMessageSQL)
+	if err != nil {
 		return err
 	}
+	defer func() { _ = insMsg.Close() }()
 
-	if _, err := tx.Exec(
-		`INSERT INTO chats (jid, last_ts, last_preview) VALUES (?, ?, ?)
-		 ON CONFLICT(jid) DO UPDATE SET
-		   last_ts = CASE WHEN excluded.last_ts >= chats.last_ts THEN excluded.last_ts ELSE chats.last_ts END,
-		   last_preview = CASE WHEN excluded.last_ts >= chats.last_ts THEN excluded.last_preview ELSE chats.last_preview END`,
-		m.ChatJID, m.Timestamp, m.Text,
-	); err != nil {
+	upChat, err := tx.Prepare(updateChatSQL)
+	if err != nil {
 		return err
+	}
+	defer func() { _ = upChat.Close() }()
+
+	for _, m := range msgs {
+		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text); err != nil {
+			return err
+		}
+		if _, err := upChat.Exec(m.ChatJID, m.Timestamp, m.Text); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
