@@ -1,6 +1,8 @@
 #include "messagemodel.h"
 #include "ipcclient.h"
 
+#include <QDateTime>
+#include <QLocale>
 #include <QStringList>
 
 MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
@@ -36,6 +38,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.timestamp;
     case TextRole:
         return m.text;
+    case DayRole:
+        return dayLabel(m.timestamp);
     default:
         return {};
     }
@@ -49,6 +53,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {FromMeRole, "fromMe"},
         {TimestampRole, "timestamp"},
         {TextRole, "text"},
+        {DayRole, "day"},
     };
 }
 
@@ -74,6 +79,7 @@ void MessageModel::sendText(const QString &text)
     MessageItem item;
     item.fromMe = true;
     item.text = text;
+    item.timestamp = QDateTime::currentSecsSinceEpoch();
     append(item);
 }
 
@@ -124,6 +130,19 @@ void MessageModel::append(const MessageItem &item)
     beginInsertRows({}, row, row);
     m_messages.append(item);
     endInsertRows();
+}
+
+QString MessageModel::dayLabel(qint64 timestamp) const
+{
+    const QDate date = QDateTime::fromSecsSinceEpoch(timestamp).date();
+    const QDate today = QDate::currentDate();
+    if (date == today) {
+        return QStringLiteral("Today");
+    }
+    if (date == today.addDays(-1)) {
+        return QStringLiteral("Yesterday");
+    }
+    return QLocale().toString(date, QLocale::LongFormat);
 }
 
 void MessageModel::onMessageReceived(const QJsonObject &message)

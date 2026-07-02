@@ -29,6 +29,7 @@ public:
         FromMeRole,
         TimestampRole,
         TextRole,
+        DayRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -47,6 +48,7 @@ private Q_SLOTS:
 private:
     void append(const MessageItem &item);
     MessageItem fromJson(const QJsonObject &o) const;
+    QString dayLabel(qint64 timestamp) const;
 
     IpcClient *m_ipc;
     QString m_chatJid;
