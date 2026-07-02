@@ -24,6 +24,7 @@ qt_add_executable(yaawp
     src/chatlistmodel.cpp
     src/messagemodel.cpp
     src/notifier.cpp
+    src/settings.cpp
     src/tray.cpp
 )
 
@@ -35,6 +36,7 @@ qt_add_qml_module(yaawp
         qml/LoginPage.qml
         qml/ChatListPage.qml
         qml/ConversationPage.qml
+        qml/SettingsPage.qml
 )
 
 target_link_libraries(yaawp PRIVATE

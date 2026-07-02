@@ -13,6 +13,7 @@
 #include "ipcclient.h"
 #include "messagemodel.h"
 #include "notifier.h"
+#include "settings.h"
 #include "tray.h"
 
 int main(int argc, char *argv[])
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
     ChatListModel chatModel(&ipc);
     MessageModel messageModel(&ipc);
     Notifier notifier(&ipc, &controller);
+    Settings settings;
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
@@ -46,6 +48,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Controller"), &controller);
     engine.rootContext()->setContextProperty(QStringLiteral("ChatModel"), &chatModel);
     engine.rootContext()->setContextProperty(QStringLiteral("MessageModel"), &messageModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("Settings"), &settings);
 
     engine.loadFromModule("tr.cebi.yaawp", "Main");
     if (engine.rootObjects().isEmpty()) {

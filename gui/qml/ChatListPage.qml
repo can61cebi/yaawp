@@ -14,6 +14,11 @@ Kirigami.Page {
             text: "Refresh"
             icon.name: "view-refresh"
             onTriggered: Ipc.requestChats()
+        },
+        Kirigami.Action {
+            text: "Settings"
+            icon.name: "configure"
+            onTriggered: applicationWindow().pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
         }
     ]
 

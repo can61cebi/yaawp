@@ -3,13 +3,17 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 
-Kirigami.ScrollablePage {
+Kirigami.Page {
     id: page
 
     property string chatTitle: "Conversation"
     property bool typingActive: false
+    property bool restored: false
+    property bool followBottom: true
     readonly property bool isGroup: Controller.currentChatJid.endsWith("@g.us")
+
     title: chatTitle
+    padding: 0
 
     function sendCurrent() {
         const value = input.text.trim()
@@ -45,7 +49,25 @@ Kirigami.ScrollablePage {
         return Qt.hsla(hash / 360, 0.55, 0.6, 1)
     }
 
-    Component.onDestruction: page.stopTyping()
+    function positionInitially() {
+        if (Settings.rememberScroll) {
+            var y = Controller.savedScroll(Controller.currentChatJid)
+            if (y >= 0) {
+                messages.contentY = Math.min(y, Math.max(0, messages.contentHeight - messages.height))
+                page.followBottom = false
+                return
+            }
+        }
+        messages.positionViewAtEnd()
+        page.followBottom = true
+    }
+
+    Component.onDestruction: {
+        page.stopTyping()
+        if (Settings.rememberScroll) {
+            Controller.saveScroll(Controller.currentChatJid, messages.contentY)
+        }
+    }
 
     Timer {
         id: typingTimer
@@ -136,10 +158,30 @@ Kirigami.ScrollablePage {
 
     ListView {
         id: messages
+        anchors.fill: parent
         model: MessageModel
         spacing: Kirigami.Units.smallSpacing
         topMargin: Kirigami.Units.smallSpacing
         bottomMargin: Kirigami.Units.smallSpacing
+        cacheBuffer: 800
+
+        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+
+        onCountChanged: {
+            if (!page.restored && count > 0) {
+                page.restored = true
+                Qt.callLater(page.positionInitially)
+            } else if (page.followBottom) {
+                Qt.callLater(messages.positionViewAtEnd)
+            }
+        }
+        onContentHeightChanged: {
+            if (page.followBottom) {
+                messages.positionViewAtEnd()
+            }
+        }
+        onMovementEnded: page.followBottom = messages.atYEnd
+        onFlickEnded: page.followBottom = messages.atYEnd
 
         section.property: "day"
         section.criteria: ViewSection.FullString
@@ -337,24 +379,32 @@ Kirigami.ScrollablePage {
                                 color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                             }
 
-                            Row {
+                            Item {
+                                id: ticks
                                 anchors.verticalCenter: parent.verticalCenter
                                 visible: row.fromMe && row.status.length > 0
-                                spacing: -Kirigami.Units.smallSpacing
-                                opacity: row.status === "read" ? 1.0 : 0.55
+                                readonly property real tw: Kirigami.Units.iconSizes.small
+                                readonly property color tc: row.status === "read" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightedTextColor
+                                readonly property real op: row.status === "read" ? 1.0 : 0.75
+                                width: row.status === "sent" ? tw : tw * 1.5
+                                height: tw
 
                                 Kirigami.Icon {
                                     source: "checkmark"
-                                    width: Kirigami.Units.iconSizes.small
-                                    height: width
-                                    color: Kirigami.Theme.highlightedTextColor
+                                    width: ticks.tw
+                                    height: ticks.tw
+                                    x: ticks.width - ticks.tw
+                                    color: ticks.tc
+                                    opacity: ticks.op
                                 }
                                 Kirigami.Icon {
                                     visible: row.status !== "sent"
                                     source: "checkmark"
-                                    width: Kirigami.Units.iconSizes.small
-                                    height: width
-                                    color: Kirigami.Theme.highlightedTextColor
+                                    width: ticks.tw
+                                    height: ticks.tw
+                                    x: 0
+                                    color: ticks.tc
+                                    opacity: ticks.op
                                 }
                             }
                         }
@@ -362,7 +412,17 @@ Kirigami.ScrollablePage {
                 }
             }
         }
+    }
 
-        onCountChanged: positionViewAtEnd()
+    QQC2.RoundButton {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Kirigami.Units.largeSpacing
+        visible: !messages.atYEnd
+        icon.name: "go-down-symbolic"
+        onClicked: {
+            messages.positionViewAtEnd()
+            page.followBottom = true
+        }
     }
 }

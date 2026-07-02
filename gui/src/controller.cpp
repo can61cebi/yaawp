@@ -96,6 +96,18 @@ void Controller::copyToClipboard(const QString &text) const
     }
 }
 
+void Controller::saveScroll(const QString &jid, double position)
+{
+    if (!jid.isEmpty()) {
+        m_scroll.insert(jid, position);
+    }
+}
+
+double Controller::savedScroll(const QString &jid) const
+{
+    return m_scroll.value(jid, -1.0);
+}
+
 void Controller::updateStatus()
 {
     QString status;
