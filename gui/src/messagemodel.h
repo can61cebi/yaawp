@@ -16,7 +16,9 @@ struct MessageItem {
     bool fromMe = false;
     qint64 timestamp = 0;
     QString text;
+    QString type;
     QString status;
+    QString mediaPath;
     bool pending = false; // local echo awaiting the server copy
 };
 
@@ -34,8 +36,10 @@ public:
         FromMeRole,
         TimestampRole,
         TextRole,
+        TypeRole,
         DayRole,
         StatusRole,
+        MediaPathRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -51,6 +55,7 @@ private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);
     void onMessageReceived(const QJsonObject &message);
     void onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status);
+    void onMessageMedia(const QString &chatJid, const QString &id, const QString &mediaPath);
 
 private:
     void append(const MessageItem &item);

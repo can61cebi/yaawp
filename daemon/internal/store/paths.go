@@ -33,6 +33,23 @@ func DatabasePath() (string, error) {
 	return filepath.Join(dir, "session.db"), nil
 }
 
+// MediaDir returns the cache directory for downloaded media, creating it.
+func MediaDir() (string, error) {
+	base := os.Getenv("XDG_CACHE_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		base = filepath.Join(home, ".cache")
+	}
+	dir := filepath.Join(base, "yaawp", "media")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
 // SocketPath returns the Unix domain socket path used for IPC.
 func SocketPath() (string, error) {
 	base := os.Getenv("XDG_RUNTIME_DIR")

@@ -106,6 +106,10 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
         }
         Q_EMIT messageStatusChanged(data.value(QStringLiteral("chat_jid")).toString(), ids,
                                     data.value(QStringLiteral("status")).toString());
+    } else if (event == QStringLiteral("message_media")) {
+        Q_EMIT messageMediaChanged(data.value(QStringLiteral("chat_jid")).toString(),
+                                   data.value(QStringLiteral("id")).toString(),
+                                   data.value(QStringLiteral("media_path")).toString());
     }
     Q_EMIT eventReceived(event, data);
 }

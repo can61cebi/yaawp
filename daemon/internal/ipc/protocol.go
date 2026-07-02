@@ -36,6 +36,7 @@ const (
 	EventHistorySync  = "history_sync"
 	EventChatPresence  = "chat_presence"
 	EventMessageStatus = "message_status"
+	EventMessageMedia  = "message_media"
 )
 
 // Command is a request from a GUI client.
@@ -112,7 +113,8 @@ type Message struct {
 	Timestamp int64  `json:"timestamp"`
 	Type      string `json:"type"` // text, image, audio, and so on
 	Text      string `json:"text,omitempty"`
-	Status    string `json:"status,omitempty"` // sent, delivered, read (outgoing only)
+	Status    string `json:"status,omitempty"`     // sent, delivered, read (outgoing only)
+	MediaPath string `json:"media_path,omitempty"` // local cache path for downloaded media
 }
 
 // Backend is implemented by the engine. The IPC server dispatches commands to

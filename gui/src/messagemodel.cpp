@@ -12,6 +12,7 @@ MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::messagesReceived, this, &MessageModel::onMessagesReceived);
     connect(ipc, &IpcClient::messageReceived, this, &MessageModel::onMessageReceived);
     connect(ipc, &IpcClient::messageStatusChanged, this, &MessageModel::onMessageStatus);
+    connect(ipc, &IpcClient::messageMediaChanged, this, &MessageModel::onMessageMedia);
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -41,10 +42,14 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.timestamp;
     case TextRole:
         return m.text;
+    case TypeRole:
+        return m.type;
     case DayRole:
         return dayLabel(m.timestamp);
     case StatusRole:
         return m.status;
+    case MediaPathRole:
+        return m.mediaPath;
     default:
         return {};
     }
@@ -59,8 +64,10 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {FromMeRole, "fromMe"},
         {TimestampRole, "timestamp"},
         {TextRole, "text"},
+        {TypeRole, "type"},
         {DayRole, "day"},
         {StatusRole, "status"},
+        {MediaPathRole, "mediaPath"},
     };
 }
 
@@ -102,7 +109,9 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.fromMe = o.value(QStringLiteral("from_me")).toBool();
     item.timestamp = static_cast<qint64>(o.value(QStringLiteral("timestamp")).toDouble());
     item.text = o.value(QStringLiteral("text")).toString();
+    item.type = o.value(QStringLiteral("type")).toString();
     item.status = o.value(QStringLiteral("status")).toString();
+    item.mediaPath = o.value(QStringLiteral("media_path")).toString();
     return item;
 }
 
@@ -199,6 +208,21 @@ void MessageModel::onMessageStatus(const QString &chatJid, const QStringList &id
             m_messages[i].status = status;
             const QModelIndex idx = index(i);
             Q_EMIT dataChanged(idx, idx, {StatusRole});
+        }
+    }
+}
+
+void MessageModel::onMessageMedia(const QString &chatJid, const QString &id, const QString &mediaPath)
+{
+    if (chatJid != m_chatJid) {
+        return;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).id == id) {
+            m_messages[i].mediaPath = mediaPath;
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {MediaPathRole});
+            return;
         }
     }
 }

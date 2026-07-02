@@ -129,6 +129,8 @@ Kirigami.ScrollablePage {
 
             required property bool fromMe
             required property string text
+            required property string type
+            required property string mediaPath
             required property var timestamp
             required property string status
             required property string senderName
@@ -142,77 +144,106 @@ Kirigami.ScrollablePage {
                 readonly property int hpad: Kirigami.Units.largeSpacing
                 readonly property int vpad: Kirigami.Units.smallSpacing + 2
                 readonly property bool showSender: page.isGroup && !row.fromMe && row.senderName.length > 0
+                readonly property bool hasMedia: (row.type === "image" || row.type === "sticker") && row.mediaPath.length > 0
                 readonly property real maxContent: messages.width * 0.72 - hpad * 2
-                readonly property real contentWidth: Math.max(Math.min(textLabel.implicitWidth, maxContent),
-                                                              metaRow.implicitWidth,
-                                                              showSender ? Math.min(senderLabel.implicitWidth, maxContent) : 0)
+                readonly property real contentW: {
+                    var w = metaContent.implicitWidth
+                    if (row.text.length > 0)
+                        w = Math.max(w, Math.min(textLabel.implicitWidth, maxContent))
+                    if (showSender)
+                        w = Math.max(w, Math.min(senderLabel.implicitWidth, maxContent))
+                    if (hasMedia)
+                        w = Math.max(w, mediaImage.width)
+                    return w
+                }
 
                 anchors.left: row.fromMe ? undefined : parent.left
                 anchors.right: row.fromMe ? parent.right : undefined
                 anchors.leftMargin: Kirigami.Units.largeSpacing
                 anchors.rightMargin: Kirigami.Units.largeSpacing
 
-                width: contentWidth + hpad * 2
-                height: (showSender ? senderLabel.height : 0) + textLabel.height + metaRow.height + vpad * 2
+                width: contentW + hpad * 2
+                height: content.height + vpad * 2
                 radius: Kirigami.Units.largeSpacing
                 color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
 
-                QQC2.Label {
-                    id: senderLabel
-                    visible: bubble.showSender
+                Column {
+                    id: content
                     x: bubble.hpad
                     y: bubble.vpad
-                    width: bubble.contentWidth
-                    text: row.senderName
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                    elide: Text.ElideRight
-                    color: page.senderColor(row.senderName)
-                }
-
-                QQC2.Label {
-                    id: textLabel
-                    x: bubble.hpad
-                    y: bubble.showSender ? senderLabel.y + senderLabel.height : bubble.vpad
-                    width: bubble.contentWidth
-                    text: row.text
-                    textFormat: Text.PlainText
-                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                    color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                }
-
-                Row {
-                    id: metaRow
-                    x: bubble.width - width - bubble.hpad
-                    y: textLabel.y + textLabel.height
-                    spacing: Kirigami.Units.smallSpacing
+                    width: bubble.contentW
+                    spacing: Math.round(Kirigami.Units.smallSpacing / 2)
 
                     QQC2.Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
-                        font: Kirigami.Theme.smallFont
-                        opacity: 0.7
+                        id: senderLabel
+                        visible: bubble.showSender
+                        width: parent.width
+                        text: row.senderName
+                        font.bold: true
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        elide: Text.ElideRight
+                        color: page.senderColor(row.senderName)
+                    }
+
+                    Image {
+                        id: mediaImage
+                        readonly property real maxW: messages.width * 0.6
+                        visible: bubble.hasMedia
+                        source: bubble.hasMedia ? ("file://" + row.mediaPath) : ""
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        sourceSize.width: maxW
+                        width: (implicitWidth > 0) ? Math.min(implicitWidth, maxW) : maxW
+                        height: (implicitWidth > 0) ? width * (implicitHeight / implicitWidth) : 0
+                    }
+
+                    QQC2.Label {
+                        id: textLabel
+                        visible: row.text.length > 0
+                        width: parent.width
+                        text: row.text
+                        textFormat: Text.PlainText
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                     }
 
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: row.fromMe && row.status.length > 0
-                        spacing: -Kirigami.Units.smallSpacing
-                        opacity: row.status === "read" ? 1.0 : 0.55
+                    Item {
+                        width: parent.width
+                        height: metaContent.height
 
-                        Kirigami.Icon {
-                            source: "checkmark"
-                            width: Kirigami.Units.iconSizes.small
-                            height: width
-                            color: Kirigami.Theme.highlightedTextColor
-                        }
-                        Kirigami.Icon {
-                            visible: row.status !== "sent"
-                            source: "checkmark"
-                            width: Kirigami.Units.iconSizes.small
-                            height: width
-                            color: Kirigami.Theme.highlightedTextColor
+                        Row {
+                            id: metaContent
+                            anchors.right: parent.right
+                            spacing: Kirigami.Units.smallSpacing
+
+                            QQC2.Label {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.7
+                                color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                            }
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: row.fromMe && row.status.length > 0
+                                spacing: -Kirigami.Units.smallSpacing
+                                opacity: row.status === "read" ? 1.0 : 0.55
+
+                                Kirigami.Icon {
+                                    source: "checkmark"
+                                    width: Kirigami.Units.iconSizes.small
+                                    height: width
+                                    color: Kirigami.Theme.highlightedTextColor
+                                }
+                                Kirigami.Icon {
+                                    visible: row.status !== "sent"
+                                    source: "checkmark"
+                                    width: Kirigami.Units.iconSizes.small
+                                    height: width
+                                    color: Kirigami.Theme.highlightedTextColor
+                                }
+                            }
                         }
                     }
                 }

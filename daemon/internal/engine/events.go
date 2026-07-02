@@ -43,6 +43,7 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 			log.Printf("persist message: %v", err)
 		}
 		e.emit(ipc.NewEvent(ipc.EventMessage, msg))
+		e.maybeDownloadMedia(msg.ChatJID, msg.ID, evt.Message)
 	case *events.Receipt:
 		chatJID := e.canonicalJID(evt.Chat.String())
 		ids := make([]string, len(evt.MessageIDs))

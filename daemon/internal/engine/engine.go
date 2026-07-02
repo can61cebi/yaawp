@@ -5,6 +5,9 @@ package engine
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -362,4 +365,62 @@ func (e *Engine) SubscribePresence(p ipc.SubscribePresenceParams) (interface{}, 
 		return nil, err
 	}
 	return map[string]any{"ok": true}, nil
+}
+
+// maybeDownloadMedia downloads images and stickers in the background and, when
+// ready, records the cache path and notifies clients. Larger media (video,
+// audio, documents) is left for on demand download.
+func (e *Engine) maybeDownloadMedia(chatJID, id string, m *waE2E.Message) {
+	if m == nil {
+		return
+	}
+	if img := m.GetImageMessage(); img != nil {
+		e.downloadMediaAsync(chatJID, id, img, extFromMime(img.GetMimetype(), ".jpg"))
+	} else if st := m.GetStickerMessage(); st != nil {
+		e.downloadMediaAsync(chatJID, id, st, ".webp")
+	}
+}
+
+func (e *Engine) downloadMediaAsync(chatJID, id string, media whatsmeow.DownloadableMessage, ext string) {
+	go func() {
+		data, err := e.client.Download(e.ctx, media)
+		if err != nil {
+			log.Printf("download media %s: %v", id, err)
+			return
+		}
+		dir, err := store.MediaDir()
+		if err != nil {
+			log.Printf("media dir: %v", err)
+			return
+		}
+		path := filepath.Join(dir, sanitizeID(id)+ext)
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			log.Printf("write media %s: %v", id, err)
+			return
+		}
+		_ = e.db.UpdateMediaPath(chatJID, id, path)
+		e.emit(ipc.NewEvent(ipc.EventMessageMedia, map[string]any{
+			"chat_jid":   chatJID,
+			"id":         id,
+			"media_path": path,
+		}))
+	}()
+}
+
+func extFromMime(mime, def string) string {
+	switch {
+	case strings.Contains(mime, "png"):
+		return ".png"
+	case strings.Contains(mime, "webp"):
+		return ".webp"
+	case strings.Contains(mime, "gif"):
+		return ".gif"
+	case strings.Contains(mime, "jpeg"), strings.Contains(mime, "jpg"):
+		return ".jpg"
+	}
+	return def
+}
+
+func sanitizeID(id string) string {
+	return strings.NewReplacer("/", "_", "\\", "_", ":", "_").Replace(id)
 }
