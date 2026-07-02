@@ -74,6 +74,14 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.edited;
     case StarredRole:
         return m.starred;
+    case PreviewUrlRole:
+        return m.previewUrl;
+    case PreviewTitleRole:
+        return m.previewTitle;
+    case PreviewDescRole:
+        return m.previewDesc;
+    case PreviewImageRole:
+        return m.previewImage;
     case DaySeparatorRole: {
         // Newest first: the older neighbour is at row + 1. Show the day label
         // above the oldest message of each day.
@@ -110,6 +118,10 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {QuotedIdRole, "quotedId"},
         {EditedRole, "edited"},
         {StarredRole, "starred"},
+        {PreviewUrlRole, "previewUrl"},
+        {PreviewTitleRole, "previewTitle"},
+        {PreviewDescRole, "previewDesc"},
+        {PreviewImageRole, "previewImage"},
     };
 }
 
@@ -315,6 +327,10 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.quotedId = o.value(QStringLiteral("quoted_id")).toString();
     item.quotedText = o.value(QStringLiteral("quoted_text")).toString();
     item.quotedSender = o.value(QStringLiteral("quoted_sender")).toString();
+    item.previewUrl = o.value(QStringLiteral("preview_url")).toString();
+    item.previewTitle = o.value(QStringLiteral("preview_title")).toString();
+    item.previewDesc = o.value(QStringLiteral("preview_desc")).toString();
+    item.previewImage = o.value(QStringLiteral("preview_image")).toString();
     const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();
     for (auto it = reacts.constBegin(); it != reacts.constEnd(); ++it) {
         item.reactions.insert(it.key(), it.value().toString());

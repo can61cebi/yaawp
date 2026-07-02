@@ -167,6 +167,12 @@ type Message struct {
 	Starred     bool   `json:"starred,omitempty"`
 	ChatName    string `json:"chat_name,omitempty"` // only set for cross chat lists like starred
 
+	// Link preview, populated for live messages only (not persisted).
+	PreviewURL   string `json:"preview_url,omitempty"`
+	PreviewTitle string `json:"preview_title,omitempty"`
+	PreviewDesc  string `json:"preview_desc,omitempty"`
+	PreviewImage string `json:"preview_image,omitempty"`
+
 	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
 
 	QuotedID     string `json:"quoted_id,omitempty"`

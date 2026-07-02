@@ -203,6 +203,7 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 	qid, qsender, qtext := e.extractQuote(evt.Message)
 	mw, mh := mediaDimensions(evt.Message)
 	raw := rawMedia(evt.Message)
+	purl, ptitle, pdesc, pimage := e.extractPreview(evt.Info.ID, evt.Message)
 	return ipc.Message{
 		ID:           evt.Info.ID,
 		ChatJID:      e.canonicalJID(evt.Info.Chat.String()),
@@ -219,6 +220,10 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 		MediaWidth:   mw,
 		MediaHeight:  mh,
 		RawMedia:     raw,
+		PreviewURL:   purl,
+		PreviewTitle: ptitle,
+		PreviewDesc:  pdesc,
+		PreviewImage: pimage,
 	}, true
 }
 

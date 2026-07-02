@@ -513,6 +513,27 @@ func (e *Engine) ListMessages(p ipc.ListMessagesParams) (interface{}, error) {
 	return msgs, nil
 }
 
+// extractPreview pulls the link preview out of an extended text message and
+// caches its thumbnail. It returns empty strings when there is no preview.
+func (e *Engine) extractPreview(id string, m *waE2E.Message) (url, title, desc, image string) {
+	ext := m.GetExtendedTextMessage()
+	if ext == nil || ext.GetTitle() == "" {
+		return "", "", "", ""
+	}
+	title = ext.GetTitle()
+	desc = ext.GetDescription()
+	url = ext.GetMatchedText()
+	if thumb := ext.GetJPEGThumbnail(); len(thumb) > 0 {
+		if dir, err := store.MediaDir(); err == nil {
+			p := filepath.Join(dir, "preview_"+sanitizeID(id)+".jpg")
+			if os.WriteFile(p, thumb, 0o600) == nil {
+				image = p
+			}
+		}
+	}
+	return url, title, desc, image
+}
+
 // imageDimensions reads the pixel size of a local image without decoding it fully.
 func imageDimensions(path string) (int, int) {
 	f, err := os.Open(path)

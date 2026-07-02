@@ -592,6 +592,10 @@ Kirigami.Page {
             required property string daySeparator
             required property bool edited
             required property bool starred
+            required property string previewUrl
+            required property string previewTitle
+            required property string previewDesc
+            required property string previewImage
 
             width: messages.width
             implicitHeight: dcol.height
@@ -646,6 +650,8 @@ Kirigami.Page {
                                 w = Math.max(w, mediaImage.width)
                             if (fileChip.isFile)
                                 w = Math.max(w, fileChip.width)
+                            if (previewCard.has)
+                                w = Math.max(w, previewCard.width)
                             if (row.reactions.length > 0)
                                 w = Math.max(w, reactionsLabel.implicitWidth)
                             if (row.quotedText.length > 0)
@@ -831,6 +837,62 @@ Kirigami.Page {
 
                                 TapHandler {
                                     onTapped: MessageModel.openMedia(row.messageId)
+                                }
+                            }
+
+                            Rectangle {
+                                id: previewCard
+                                readonly property bool has: row.previewTitle.length > 0
+                                visible: previewCard.has
+                                width: previewCard.has ? Math.min(bubble.maxContent, Kirigami.Units.gridUnit * 16) : 0
+                                height: previewCard.has ? previewCol.implicitHeight : 0
+                                radius: Kirigami.Units.smallSpacing
+                                color: row.fromMe ? Qt.rgba(0, 0, 0, 0.18) : Qt.rgba(0, 0, 0, 0.08)
+                                clip: true
+
+                                ColumnLayout {
+                                    id: previewCol
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    spacing: 0
+
+                                    Image {
+                                        visible: row.previewImage.length > 0
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: visible ? width * 0.5 : 0
+                                        source: row.previewImage.length > 0 ? "file://" + row.previewImage : ""
+                                        fillMode: Image.PreserveAspectCrop
+                                        clip: true
+                                        asynchronous: true
+                                    }
+                                    QQC2.Label {
+                                        Layout.fillWidth: true
+                                        Layout.margins: Kirigami.Units.smallSpacing
+                                        Layout.bottomMargin: 0
+                                        text: row.previewTitle
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 2
+                                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    }
+                                    QQC2.Label {
+                                        Layout.fillWidth: true
+                                        Layout.margins: Kirigami.Units.smallSpacing
+                                        Layout.topMargin: Math.round(Kirigami.Units.smallSpacing / 2)
+                                        visible: row.previewDesc.length > 0
+                                        text: row.previewDesc
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 2
+                                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                        opacity: 0.8
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    }
+                                }
+
+                                TapHandler {
+                                    onTapped: Controller.openUrl(row.previewUrl.length > 0 ? row.previewUrl : row.previewTitle)
                                 }
                             }
 

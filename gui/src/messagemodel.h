@@ -27,6 +27,10 @@ struct MessageItem {
     QString quotedId;
     QString quotedText;
     QString quotedSender;
+    QString previewUrl;
+    QString previewTitle;
+    QString previewDesc;
+    QString previewImage;
     QMap<QString, QString> reactions; // sender jid -> emoji
     bool edited = false;  // the sender edited this message
     bool starred = false; // the user starred this message
@@ -62,6 +66,10 @@ public:
         QuotedIdRole,
         EditedRole,
         StarredRole,
+        PreviewUrlRole,
+        PreviewTitleRole,
+        PreviewDescRole,
+        PreviewImageRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
