@@ -42,8 +42,8 @@ int main(int argc, char *argv[])
     ChatFilterModel chatFilter;
     chatFilter.setSourceModel(&chatModel);
     MessageModel messageModel(&ipc);
-    Notifier notifier(&ipc, &controller);
     Settings settings;
+    Notifier notifier(&ipc, &controller, &settings);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextObject(new KLocalizedContext(&engine));

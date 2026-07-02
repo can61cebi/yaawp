@@ -1,16 +1,18 @@
 #include "notifier.h"
 #include "controller.h"
 #include "ipcclient.h"
+#include "settings.h"
 
 #include <KNotification>
 #include <KNotificationReplyAction>
 
 #include <memory>
 
-Notifier::Notifier(IpcClient *ipc, Controller *controller, QObject *parent)
+Notifier::Notifier(IpcClient *ipc, Controller *controller, Settings *settings, QObject *parent)
     : QObject(parent)
     , m_ipc(ipc)
     , m_controller(controller)
+    , m_settings(settings)
 {
     connect(ipc, &IpcClient::messageReceived, this, &Notifier::onMessageReceived);
     connect(ipc, &IpcClient::chatsReceived, this, &Notifier::onChatsReceived);
@@ -30,6 +32,9 @@ void Notifier::onChatsReceived(const QJsonArray &chats)
 void Notifier::onMessageReceived(const QJsonObject &message)
 {
     if (message.value(QStringLiteral("from_me")).toBool()) {
+        return;
+    }
+    if (!m_settings->notifications()) {
         return;
     }
     const QString chatJid = message.value(QStringLiteral("chat_jid")).toString();

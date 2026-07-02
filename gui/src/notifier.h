@@ -8,6 +8,7 @@
 
 class IpcClient;
 class Controller;
+class Settings;
 
 // Notifier raises a native KDE notification for incoming messages that are not
 // from the user and do not belong to the chat currently open on screen.
@@ -16,7 +17,7 @@ class Notifier : public QObject
     Q_OBJECT
 
 public:
-    Notifier(IpcClient *ipc, Controller *controller, QObject *parent = nullptr);
+    Notifier(IpcClient *ipc, Controller *controller, Settings *settings, QObject *parent = nullptr);
 
 private Q_SLOTS:
     void onMessageReceived(const QJsonObject &message);
@@ -25,5 +26,6 @@ private Q_SLOTS:
 private:
     IpcClient *m_ipc;
     Controller *m_controller;
+    Settings *m_settings;
     QSet<QString> m_muted; // jids whose notifications are silenced
 };

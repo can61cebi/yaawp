@@ -841,6 +841,7 @@ Kirigami.Page {
                                 width: parent.width
                                 text: revoked ? "This message was deleted" : page.linkify(row.text)
                                 font.italic: revoked
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * Settings.messageScale
                                 opacity: revoked ? 0.7 : 1.0
                                 textFormat: Text.StyledText
                                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
