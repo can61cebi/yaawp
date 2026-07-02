@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 class IpcClient;
 
@@ -14,6 +15,7 @@ struct MessageItem {
     bool fromMe = false;
     qint64 timestamp = 0;
     QString text;
+    QString status;
 };
 
 // MessageModel holds the messages of the currently open chat. History is loaded
@@ -30,6 +32,7 @@ public:
         TimestampRole,
         TextRole,
         DayRole,
+        StatusRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -44,6 +47,7 @@ public:
 private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);
     void onMessageReceived(const QJsonObject &message);
+    void onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status);
 
 private:
     void append(const MessageItem &item);

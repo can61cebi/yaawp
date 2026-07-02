@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"cebi.tr/yaawp/internal/ipc"
 
@@ -32,13 +33,14 @@ CREATE TABLE IF NOT EXISTS messages (
     ts         INTEGER NOT NULL DEFAULT 0,
     type       TEXT NOT NULL DEFAULT 'text',
     text       TEXT NOT NULL DEFAULT '',
+    status     TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (chat_jid, id)
 );
 CREATE INDEX IF NOT EXISTS idx_messages_chat_ts ON messages (chat_jid, ts);
 `
 
 const insertMessageSQL = `INSERT OR IGNORE INTO messages
-    (id, chat_jid, sender_jid, from_me, ts, type, text) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    (id, chat_jid, sender_jid, from_me, ts, type, text, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
 // updateChatSQL advances a chat summary only when the incoming message is at
 // least as recent as the stored one.
@@ -47,8 +49,8 @@ const updateChatSQL = `INSERT INTO chats (jid, last_ts, last_preview) VALUES (?,
       last_ts = CASE WHEN excluded.last_ts >= chats.last_ts THEN excluded.last_ts ELSE chats.last_ts END,
       last_preview = CASE WHEN excluded.last_ts >= chats.last_ts THEN excluded.last_preview ELSE chats.last_preview END`
 
-// OpenDB opens the application database under the XDG data directory and
-// applies the schema.
+// OpenDB opens the application database under the XDG data directory, applies
+// the schema and runs migrations.
 func OpenDB() (*DB, error) {
 	dir, err := DataDir()
 	if err != nil {
@@ -63,7 +65,15 @@ func OpenDB() (*DB, error) {
 		_ = sqldb.Close()
 		return nil, fmt.Errorf("apply schema: %w", err)
 	}
-	return &DB{sql: sqldb}, nil
+	db := &DB{sql: sqldb}
+	db.migrate()
+	return db, nil
+}
+
+// migrate adds columns that may be missing from an older database. Errors are
+// ignored because the column usually already exists.
+func (d *DB) migrate() {
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT ''`)
 }
 
 // Close releases the database handle.
@@ -99,7 +109,7 @@ func (d *DB) PutMessages(msgs []ipc.Message) error {
 	defer func() { _ = upChat.Close() }()
 
 	for _, m := range msgs {
-		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text); err != nil {
+		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status); err != nil {
 			return err
 		}
 		if _, err := upChat.Exec(m.ChatJID, m.Timestamp, m.Text); err != nil {
@@ -107,6 +117,23 @@ func (d *DB) PutMessages(msgs []ipc.Message) error {
 		}
 	}
 	return tx.Commit()
+}
+
+// UpdateStatus advances the delivery status of the given outgoing messages. A
+// read status is never downgraded back to delivered.
+func (d *DB) UpdateStatus(chatJID string, ids []string, status string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	query := `UPDATE messages SET status = ? WHERE chat_jid = ? AND id IN (` + placeholders + `) AND status != 'read'`
+	args := make([]any, 0, len(ids)+2)
+	args = append(args, status, chatJID)
+	for _, id := range ids {
+		args = append(args, id)
+	}
+	_, err := d.sql.Exec(query, args...)
+	return err
 }
 
 // SetChatName sets the display name and group flag for a chat.
@@ -149,7 +176,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 		limit = 50
 	}
 	rows, err := d.sql.Query(
-		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text
+		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status
 		 FROM messages WHERE chat_jid = ? ORDER BY ts DESC LIMIT ?`,
 		chatJID, limit)
 	if err != nil {
@@ -161,7 +188,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 	for rows.Next() {
 		var m ipc.Message
 		var fromMe int
-		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text); err != nil {
+		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status); err != nil {
 			return nil, err
 		}
 		m.FromMe = fromMe != 0

@@ -121,6 +121,7 @@ Kirigami.ScrollablePage {
             required property bool fromMe
             required property string text
             required property var timestamp
+            required property string status
 
             width: messages.width
             implicitHeight: bubble.height
@@ -132,7 +133,7 @@ Kirigami.ScrollablePage {
                 readonly property int vpad: Kirigami.Units.smallSpacing + 2
                 readonly property real maxContent: messages.width * 0.72 - hpad * 2
                 readonly property real contentWidth: Math.max(Math.min(textLabel.implicitWidth, maxContent),
-                                                              timeLabel.implicitWidth)
+                                                              metaRow.implicitWidth)
 
                 anchors.left: row.fromMe ? undefined : parent.left
                 anchors.right: row.fromMe ? parent.right : undefined
@@ -140,7 +141,7 @@ Kirigami.ScrollablePage {
                 anchors.rightMargin: Kirigami.Units.largeSpacing
 
                 width: contentWidth + hpad * 2
-                height: textLabel.height + timeLabel.height + vpad * 2
+                height: textLabel.height + metaRow.height + vpad * 2
                 radius: Kirigami.Units.largeSpacing
                 color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
 
@@ -155,14 +156,40 @@ Kirigami.ScrollablePage {
                     color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                 }
 
-                QQC2.Label {
-                    id: timeLabel
+                Row {
+                    id: metaRow
                     x: bubble.width - width - bubble.hpad
                     y: textLabel.y + textLabel.height
-                    text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
-                    font: Kirigami.Theme.smallFont
-                    opacity: 0.7
-                    color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.7
+                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                    }
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: row.fromMe && row.status.length > 0
+                        spacing: -Kirigami.Units.smallSpacing
+                        opacity: row.status === "read" ? 1.0 : 0.55
+
+                        Kirigami.Icon {
+                            source: "checkmark"
+                            width: Kirigami.Units.iconSizes.small
+                            height: width
+                            color: Kirigami.Theme.highlightedTextColor
+                        }
+                        Kirigami.Icon {
+                            visible: row.status !== "sent"
+                            source: "checkmark"
+                            width: Kirigami.Units.iconSizes.small
+                            height: width
+                            color: Kirigami.Theme.highlightedTextColor
+                        }
+                    }
                 }
             }
         }

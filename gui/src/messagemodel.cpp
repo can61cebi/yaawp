@@ -11,6 +11,7 @@ MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
 {
     connect(ipc, &IpcClient::messagesReceived, this, &MessageModel::onMessagesReceived);
     connect(ipc, &IpcClient::messageReceived, this, &MessageModel::onMessageReceived);
+    connect(ipc, &IpcClient::messageStatusChanged, this, &MessageModel::onMessageStatus);
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -40,6 +41,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.text;
     case DayRole:
         return dayLabel(m.timestamp);
+    case StatusRole:
+        return m.status;
     default:
         return {};
     }
@@ -54,6 +57,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {TimestampRole, "timestamp"},
         {TextRole, "text"},
         {DayRole, "day"},
+        {StatusRole, "status"},
     };
 }
 
@@ -91,7 +95,22 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.fromMe = o.value(QStringLiteral("from_me")).toBool();
     item.timestamp = static_cast<qint64>(o.value(QStringLiteral("timestamp")).toDouble());
     item.text = o.value(QStringLiteral("text")).toString();
+    item.status = o.value(QStringLiteral("status")).toString();
     return item;
+}
+
+void MessageModel::onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status)
+{
+    if (chatJid != m_chatJid) {
+        return;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (ids.contains(m_messages.at(i).id)) {
+            m_messages[i].status = status;
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {StatusRole});
+        }
+    }
 }
 
 void MessageModel::onMessagesReceived(const QJsonArray &messages)

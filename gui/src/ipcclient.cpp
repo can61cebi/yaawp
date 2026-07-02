@@ -98,6 +98,14 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
         Q_EMIT presenceChanged(data.value(QStringLiteral("jid")).toString(),
                                data.value(QStringLiteral("state")).toString(),
                                static_cast<qint64>(data.value(QStringLiteral("last_seen")).toDouble()));
+    } else if (event == QStringLiteral("message_status")) {
+        const QJsonArray idsArray = data.value(QStringLiteral("message_ids")).toArray();
+        QStringList ids;
+        for (const QJsonValue &value : idsArray) {
+            ids.append(value.toString());
+        }
+        Q_EMIT messageStatusChanged(data.value(QStringLiteral("chat_jid")).toString(), ids,
+                                    data.value(QStringLiteral("status")).toString());
     }
     Q_EMIT eventReceived(event, data);
 }

@@ -285,6 +285,7 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 		Timestamp: resp.Timestamp.Unix(),
 		Type:      "text",
 		Text:      p.Text,
+		Status:    "sent",
 	})
 	return map[string]any{"message_id": resp.ID, "timestamp": resp.Timestamp.Unix()}, nil
 }

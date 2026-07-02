@@ -42,6 +42,7 @@ Q_SIGNALS:
     void messagesReceived(const QJsonArray &messages);
     void chatPresenceChanged(const QString &chatJid, const QString &senderJid, const QString &state);
     void presenceChanged(const QString &jid, const QString &state, qint64 lastSeen);
+    void messageStatusChanged(const QString &chatJid, const QStringList &ids, const QString &status);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:

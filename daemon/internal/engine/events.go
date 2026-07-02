@@ -44,9 +44,29 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 		}
 		e.emit(ipc.NewEvent(ipc.EventMessage, msg))
 	case *events.Receipt:
+		chatJID := e.canonicalJID(evt.Chat.String())
+		ids := make([]string, len(evt.MessageIDs))
+		for i, id := range evt.MessageIDs {
+			ids[i] = string(id)
+		}
+		status := ""
+		switch evt.Type {
+		case types.ReceiptTypeDelivered:
+			status = "delivered"
+		case types.ReceiptTypeRead, types.ReceiptTypeReadSelf:
+			status = "read"
+		}
+		if status != "" {
+			_ = e.db.UpdateStatus(chatJID, ids, status)
+			e.emit(ipc.NewEvent(ipc.EventMessageStatus, map[string]any{
+				"chat_jid":    chatJID,
+				"message_ids": ids,
+				"status":      status,
+			}))
+		}
 		e.emit(ipc.NewEvent(ipc.EventReceipt, map[string]any{
-			"chat_jid":    e.canonicalJID(evt.Chat.String()),
-			"message_ids": evt.MessageIDs,
+			"chat_jid":    chatJID,
+			"message_ids": ids,
 			"receipt":     string(evt.Type),
 		}))
 	case *events.Presence:
@@ -118,6 +138,10 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 	if !ok {
 		return ipc.Message{}, false
 	}
+	status := ""
+	if evt.Info.IsFromMe {
+		status = "sent"
+	}
 	return ipc.Message{
 		ID:        evt.Info.ID,
 		ChatJID:   e.canonicalJID(evt.Info.Chat.String()),
@@ -126,6 +150,7 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 		Timestamp: evt.Info.Timestamp.Unix(),
 		Type:      typ,
 		Text:      text,
+		Status:    status,
 	}, true
 }
 
@@ -136,6 +161,10 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 		return ipc.Message{}, false
 	}
 	key := wmi.GetKey()
+	status := ""
+	if key.GetFromMe() {
+		status = "sent"
+	}
 	return ipc.Message{
 		ID:        key.GetID(),
 		ChatJID:   chatJID,
@@ -144,6 +173,7 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 		Timestamp: int64(wmi.GetMessageTimestamp()),
 		Type:      typ,
 		Text:      text,
+		Status:    status,
 	}, true
 }
 
