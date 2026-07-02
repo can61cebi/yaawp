@@ -107,6 +107,11 @@ Kirigami.Page {
         searchField.text = ""
     }
 
+    function insertEmoji(e) {
+        input.insert(input.cursorPosition, e)
+        input.forceActiveFocus()
+    }
+
     function startTyping() {
         if (!page.typingActive) {
             Ipc.setTyping(page.chatJid, true)
@@ -361,6 +366,59 @@ Kirigami.Page {
                 QQC2.ToolButton {
                     icon.name: "mail-attachment-symbolic"
                     onClicked: fileDialog.open()
+                }
+                QQC2.ToolButton {
+                    id: emojiButton
+                    icon.name: "smiley"
+                    onClicked: emojiPopup.open()
+
+                    QQC2.Popup {
+                        id: emojiPopup
+                        y: -height - Kirigami.Units.smallSpacing
+                        width: Kirigami.Units.gridUnit * 18
+                        height: Kirigami.Units.gridUnit * 12
+                        padding: Kirigami.Units.smallSpacing
+
+                        readonly property var emojis: [
+                            "😀","😁","😂","🤣","😊","😇","🙂","🙃","😉","😌",
+                            "😍","🥰","😘","😗","😋","😛","😝","🤪","🤔","🤗",
+                            "🤓","😎","🥳","😏","😒","😔","😞","😕","🙁","😣",
+                            "😫","😩","🥺","😢","😭","😤","😠","😡","🤯","😳",
+                            "🥵","🥶","😱","😨","😰","😅","😓","🤭","🤫","😶",
+                            "👍","👎","👌","✌️","🤞","🤙","👏","🙏","💪","🫶",
+                            "❤️","🧡","💛","💚","💙","💜","🖤","🔥","🎉","💯"
+                        ]
+
+                        contentItem: GridView {
+                            clip: true
+                            cellWidth: Kirigami.Units.gridUnit * 2
+                            cellHeight: Kirigami.Units.gridUnit * 2
+                            model: emojiPopup.emojis
+
+                            delegate: QQC2.AbstractButton {
+                                id: emojiCell
+                                required property var modelData
+                                width: GridView.view.cellWidth
+                                height: GridView.view.cellHeight
+                                hoverEnabled: true
+
+                                background: Rectangle {
+                                    radius: Kirigami.Units.smallSpacing
+                                    color: emojiCell.hovered ? Kirigami.Theme.highlightColor : "transparent"
+                                }
+                                contentItem: QQC2.Label {
+                                    text: emojiCell.modelData
+                                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.4
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                onClicked: {
+                                    page.insertEmoji(emojiCell.modelData)
+                                    emojiPopup.close()
+                                }
+                            }
+                        }
+                    }
                 }
                 QQC2.TextField {
                     id: input
