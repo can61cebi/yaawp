@@ -87,6 +87,12 @@ func (s *Server) handleConn(conn net.Conn) {
 	s.mu.Unlock()
 	log.Printf("client connected (%d total)", n)
 
+	// Send a snapshot so a client that connects late still sees the current
+	// state and any pending QR code.
+	for _, evt := range s.backend.InitialEvents() {
+		c.write(evt)
+	}
+
 	defer func() {
 		s.mu.Lock()
 		delete(s.clients, c)

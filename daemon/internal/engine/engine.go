@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"cebi.tr/yaawp/internal/ipc"
 	"cebi.tr/yaawp/internal/store"
@@ -36,6 +37,9 @@ type Engine struct {
 
 	sinkMu sync.RWMutex
 	sink   func(ipc.Event)
+
+	qrMu   sync.Mutex
+	lastQR string
 }
 
 // New opens the session and application stores, creates the client and attaches
@@ -88,6 +92,38 @@ func (e *Engine) emit(evt ipc.Event) {
 	}
 }
 
+func (e *Engine) setQR(code string) {
+	e.qrMu.Lock()
+	e.lastQR = code
+	e.qrMu.Unlock()
+}
+
+// InitialEvents returns the events a newly connected client should receive so
+// it can render the current state immediately: the connection state and, if
+// pairing is in progress, the latest QR code. Without this a client that
+// connects after the QR was generated would wait for the next refresh.
+func (e *Engine) InitialEvents() []ipc.Event {
+	state := "logged_out"
+	if e.client.Store.ID != nil {
+		if e.client.IsConnected() {
+			state = "connected"
+		} else {
+			state = "connecting"
+		}
+	} else {
+		state = "connecting"
+	}
+	evts := []ipc.Event{ipc.NewEvent(ipc.EventConnection, map[string]any{"state": state})}
+
+	e.qrMu.Lock()
+	qr := e.lastQR
+	e.qrMu.Unlock()
+	if qr != "" && state != "connected" {
+		evts = append(evts, ipc.NewEvent(ipc.EventQR, map[string]any{"code": qr}))
+	}
+	return evts
+}
+
 // Start connects to WhatsApp. If the device is not paired yet, it begins QR
 // login and streams QR codes as events.
 func (e *Engine) Start() error {
@@ -112,6 +148,7 @@ func (e *Engine) beginQRLogin() error {
 		for item := range qrChan {
 			switch item.Event {
 			case "code":
+				e.setQR(item.Code)
 				e.emit(ipc.NewEvent(ipc.EventQR, map[string]any{"code": item.Code}))
 			case "success":
 				// Pairing is done; connection events will follow.
@@ -252,8 +289,25 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 	return map[string]any{"message_id": resp.ID, "timestamp": resp.Timestamp.Unix()}, nil
 }
 
-// MarkRead is a placeholder. TODO: call client.MarkRead with the correct
-// sender, chat and message ids.
+// MarkRead sends read receipts for the given messages. Group chats need a per
+// message participant and are not handled yet.
 func (e *Engine) MarkRead(p ipc.MarkReadParams) (interface{}, error) {
+	if len(p.MessageIDs) == 0 {
+		return map[string]any{"ok": true}, nil
+	}
+	chat, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	if chat.Server == types.GroupServer {
+		return map[string]any{"skipped": "group"}, nil
+	}
+	ids := make([]types.MessageID, len(p.MessageIDs))
+	for i, s := range p.MessageIDs {
+		ids[i] = types.MessageID(s)
+	}
+	if err := e.client.MarkRead(e.ctx, ids, time.Now(), chat, chat); err != nil {
+		return nil, err
+	}
 	return map[string]any{"ok": true}, nil
 }

@@ -19,12 +19,15 @@ import (
 func (e *Engine) handleEvent(rawEvt interface{}) {
 	switch evt := rawEvt.(type) {
 	case *events.Connected:
+		e.setQR("")
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "connected"}))
 	case *events.Disconnected:
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "disconnected"}))
 	case *events.LoggedOut:
+		e.setQR("")
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "logged_out"}))
 	case *events.PairSuccess:
+		e.setQR("")
 		e.emit(ipc.NewEvent(ipc.EventPairSuccess, map[string]any{
 			"jid":       evt.ID.String(),
 			"push_name": e.client.Store.PushName,

@@ -31,15 +31,17 @@ func main() {
 	srv := ipc.NewServer(*sockPath, eng)
 	eng.SetSink(srv.Broadcast) // engine events go to every connected GUI
 
-	if err := eng.Start(); err != nil {
-		log.Printf("start warning: %v", err)
-	}
-
+	// Start serving before connecting so the socket is ready when the GUI
+	// launches. Any QR generated during Start is cached and delivered on connect.
 	go func() {
 		if err := srv.Serve(ctx); err != nil {
 			log.Fatalf("ipc serve: %v", err)
 		}
 	}()
+
+	if err := eng.Start(); err != nil {
+		log.Printf("start warning: %v", err)
+	}
 
 	log.Printf("yaawp-daemon running; socket=%s", *sockPath)
 	<-ctx.Done()

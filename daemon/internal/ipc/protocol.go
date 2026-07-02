@@ -103,6 +103,9 @@ type Message struct {
 // Backend is implemented by the engine. The IPC server dispatches commands to
 // it and returns a JSON-serialisable result or an error.
 type Backend interface {
+	// InitialEvents returns events for a newly connected client so it can
+	// render the current state without waiting for the next push.
+	InitialEvents() []Event
 	GetState() (interface{}, error)
 	Login() (interface{}, error)
 	Logout() (interface{}, error)
