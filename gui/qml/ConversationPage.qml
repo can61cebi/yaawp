@@ -47,6 +47,14 @@ Kirigami.Page {
                 Controller.requestContactInfo(page.chatJid)
                 contactSheet.open()
             }
+        },
+        Kirigami.Action {
+            text: "Disappearing messages"
+            icon.name: "chronometer"
+            Kirigami.Action { text: "Off"; onTriggered: Ipc.setDisappearing(page.chatJid, 0) }
+            Kirigami.Action { text: "24 hours"; onTriggered: Ipc.setDisappearing(page.chatJid, 86400) }
+            Kirigami.Action { text: "7 days"; onTriggered: Ipc.setDisappearing(page.chatJid, 604800) }
+            Kirigami.Action { text: "90 days"; onTriggered: Ipc.setDisappearing(page.chatJid, 7776000) }
         }
     ]
 

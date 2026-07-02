@@ -31,6 +31,7 @@ const (
 	MethodEditMessage       = "edit_message"
 	MethodGroupInfo         = "group_info"
 	MethodContactInfo       = "contact_info"
+	MethodSetDisappearing   = "set_disappearing"
 	MethodSetPinned         = "set_pinned"
 	MethodSetMuted          = "set_muted"
 	MethodStarMessage       = "star_message"
@@ -200,6 +201,13 @@ type ContactInfoParams struct {
 	JID string `json:"jid"`
 }
 
+// SetDisappearingParams sets a chat's disappearing message timer. Seconds of 0
+// turns it off.
+type SetDisappearingParams struct {
+	ChatJID string `json:"chat_jid"`
+	Seconds int    `json:"seconds"`
+}
+
 // SetPinnedParams pins or unpins a chat to the top of the list.
 type SetPinnedParams struct {
 	JID    string `json:"jid"`
@@ -247,6 +255,7 @@ type Backend interface {
 	EditMessage(p EditMessageParams) (interface{}, error)
 	GroupInfo(p GroupInfoParams) (interface{}, error)
 	ContactInfo(p ContactInfoParams) (interface{}, error)
+	SetDisappearing(p SetDisappearingParams) (interface{}, error)
 	SetPinned(p SetPinnedParams) (interface{}, error)
 	SetMuted(p SetMutedParams) (interface{}, error)
 	StarMessage(p StarMessageParams) (interface{}, error)

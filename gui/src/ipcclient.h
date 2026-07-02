@@ -38,6 +38,7 @@ public:
     Q_INVOKABLE void editMessage(const QString &chatJid, const QString &id, const QString &text);
     Q_INVOKABLE void requestGroupInfo(const QString &jid);
     Q_INVOKABLE void requestContactInfo(const QString &jid);
+    Q_INVOKABLE void setDisappearing(const QString &chatJid, int seconds);
     Q_INVOKABLE void setPinned(const QString &jid, bool pinned);
     Q_INVOKABLE void setMuted(const QString &jid, bool muted);
     Q_INVOKABLE void starMessage(const QString &chatJid, const QString &id, bool starred);

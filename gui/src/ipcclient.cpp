@@ -307,6 +307,14 @@ void IpcClient::requestContactInfo(const QString &jid)
     send(QStringLiteral("contact_info"), p);
 }
 
+void IpcClient::setDisappearing(const QString &chatJid, int seconds)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("seconds"), seconds);
+    send(QStringLiteral("set_disappearing"), p);
+}
+
 void IpcClient::setPinned(const QString &jid, bool pinned)
 {
     QJsonObject p;

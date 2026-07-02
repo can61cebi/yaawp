@@ -317,6 +317,18 @@ func (e *Engine) ContactInfo(p ipc.ContactInfoParams) (interface{}, error) {
 	}, nil
 }
 
+// SetDisappearing sets a chat's disappearing message timer; zero turns it off.
+func (e *Engine) SetDisappearing(p ipc.SetDisappearingParams) (interface{}, error) {
+	chat, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	if err := e.client.SetDisappearingTimer(e.ctx, chat, time.Duration(p.Seconds)*time.Second, time.Now()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
+}
+
 // SetPinned pins or unpins a chat so it sorts to the top of the list.
 func (e *Engine) SetPinned(p ipc.SetPinnedParams) (interface{}, error) {
 	if err := e.db.SetPinned(p.JID, p.Pinned); err != nil {
