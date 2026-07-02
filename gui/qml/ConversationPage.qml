@@ -339,6 +339,18 @@ Kirigami.Page {
                     wrapMode: Text.WordWrap
                     opacity: 0.8
                 }
+                QQC2.Button {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    Layout.bottomMargin: Kirigami.Units.largeSpacing
+                    readonly property bool blocked: Controller.contactInfo.blocked === true
+                    text: blocked ? "Unblock" : "Block"
+                    icon.name: "im-ban-user"
+                    onClicked: {
+                        Ipc.setBlocked(page.chatJid, !blocked)
+                        contactSheet.close()
+                    }
+                }
             }
         }
     }

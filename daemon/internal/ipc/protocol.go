@@ -32,6 +32,7 @@ const (
 	MethodGroupInfo         = "group_info"
 	MethodContactInfo       = "contact_info"
 	MethodSetDisappearing   = "set_disappearing"
+	MethodSetBlocked        = "set_blocked"
 	MethodSetPinned         = "set_pinned"
 	MethodSetMuted          = "set_muted"
 	MethodStarMessage       = "star_message"
@@ -208,6 +209,12 @@ type SetDisappearingParams struct {
 	Seconds int    `json:"seconds"`
 }
 
+// SetBlockedParams blocks or unblocks a contact.
+type SetBlockedParams struct {
+	JID     string `json:"jid"`
+	Blocked bool   `json:"blocked"`
+}
+
 // SetPinnedParams pins or unpins a chat to the top of the list.
 type SetPinnedParams struct {
 	JID    string `json:"jid"`
@@ -256,6 +263,7 @@ type Backend interface {
 	GroupInfo(p GroupInfoParams) (interface{}, error)
 	ContactInfo(p ContactInfoParams) (interface{}, error)
 	SetDisappearing(p SetDisappearingParams) (interface{}, error)
+	SetBlocked(p SetBlockedParams) (interface{}, error)
 	SetPinned(p SetPinnedParams) (interface{}, error)
 	SetMuted(p SetMutedParams) (interface{}, error)
 	StarMessage(p StarMessageParams) (interface{}, error)

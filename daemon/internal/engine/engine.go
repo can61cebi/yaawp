@@ -28,6 +28,7 @@ import (
 	waStore "go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
 )
@@ -308,13 +309,39 @@ func (e *Engine) ContactInfo(p ipc.ContactInfoParams) (interface{}, error) {
 			avatarPath = ap
 		}
 	}
+	blocked := false
+	if bl, berr := e.client.GetBlocklist(e.ctx); berr == nil {
+		for _, bj := range bl.JIDs {
+			if bj.User == jid.User {
+				blocked = true
+				break
+			}
+		}
+	}
 	return map[string]any{
-		"jid":    p.JID,
-		"name":   name,
-		"phone":  "+" + jid.User,
-		"status": status,
-		"avatar": avatarPath,
+		"jid":     p.JID,
+		"name":    name,
+		"phone":   "+" + jid.User,
+		"status":  status,
+		"avatar":  avatarPath,
+		"blocked": blocked,
 	}, nil
+}
+
+// SetBlocked blocks or unblocks a contact.
+func (e *Engine) SetBlocked(p ipc.SetBlockedParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.JID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	action := events.BlocklistChangeActionUnblock
+	if p.Blocked {
+		action = events.BlocklistChangeActionBlock
+	}
+	if _, err := e.client.UpdateBlocklist(e.ctx, jid, action); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
 }
 
 // SetDisappearing sets a chat's disappearing message timer; zero turns it off.

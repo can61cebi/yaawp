@@ -317,6 +317,14 @@ void IpcClient::setDisappearing(const QString &chatJid, int seconds)
     send(QStringLiteral("set_disappearing"), p);
 }
 
+void IpcClient::setBlocked(const QString &jid, bool blocked)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    p.insert(QStringLiteral("blocked"), blocked);
+    send(QStringLiteral("set_blocked"), p);
+}
+
 void IpcClient::setPinned(const QString &jid, bool pinned)
 {
     QJsonObject p;
