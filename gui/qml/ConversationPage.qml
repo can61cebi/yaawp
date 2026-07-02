@@ -667,7 +667,7 @@ Kirigami.Page {
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: row.edited && row.type !== "revoked"
                                         text: "edited"
-                                        font: Kirigami.Theme.smallFont
+                                        font.pointSize: Kirigami.Theme.smallFont.pointSize
                                         font.italic: true
                                         opacity: 0.6
                                         color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
