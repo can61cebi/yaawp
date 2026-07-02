@@ -1,0 +1,10 @@
+[Global]
+IconName=internet-mail
+Name=yaawp
+Comment=Native WhatsApp client
+
+[Event/newMessage]
+Name=New message
+Comment=A new message was received
+Action=Popup|Sound
+Sound=message

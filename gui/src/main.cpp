@@ -11,6 +11,7 @@
 #include "controller.h"
 #include "ipcclient.h"
 #include "messagemodel.h"
+#include "notifier.h"
 
 int main(int argc, char *argv[])
 {
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
     Controller controller(&ipc);
     ChatListModel chatModel(&ipc);
     MessageModel messageModel(&ipc);
+    Notifier notifier(&ipc, &controller);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
