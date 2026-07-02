@@ -79,6 +79,9 @@ public:
 
 Q_SIGNALS:
     void replyChanged();
+    // Emitted when a chat's messages have been loaded and the model rebuilt, so
+    // the view can restore its scroll position for the new chat.
+    void chatLoaded();
 
 private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);

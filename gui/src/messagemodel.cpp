@@ -105,13 +105,18 @@ QHash<int, QByteArray> MessageModel::roleNames() const
 
 void MessageModel::setChat(const QString &jid)
 {
-    beginResetModel();
-    m_chatJid = jid;
-    m_messages.clear();
-    endResetModel();
-    if (!jid.isEmpty()) {
-        m_ipc->requestMessages(jid);
+    if (jid.isEmpty()) {
+        beginResetModel();
+        m_chatJid.clear();
+        m_messages.clear();
+        endResetModel();
+        return;
     }
+    // Keep the current messages on screen and just retarget. onMessagesReceived
+    // replaces them in a single reset when the history arrives, which avoids an
+    // intermediate reset to zero that cancels in-flight delegates and flashes.
+    m_chatJid = jid;
+    m_ipc->requestMessages(jid);
 }
 
 void MessageModel::sendText(const QString &text)
@@ -269,6 +274,7 @@ void MessageModel::onMessagesReceived(const QJsonArray &messages)
         }
     }
     endResetModel();
+    Q_EMIT chatLoaded();
     m_ipc->markRead(m_chatJid, unread);
 }
 

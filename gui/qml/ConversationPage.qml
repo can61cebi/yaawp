@@ -10,7 +10,6 @@ Kirigami.Page {
     property string chatTitle: "Conversation"
     property string chatJid: ""
     property bool typingActive: false
-    property bool restored: false
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
@@ -86,6 +85,15 @@ Kirigami.Page {
         id: typingTimer
         interval: 4000
         onTriggered: page.stopTyping()
+    }
+
+    // Restore the scroll position each time a chat's messages finish loading.
+    // This fires even when the new chat has the same message count as the old.
+    Connections {
+        target: MessageModel
+        function onChatLoaded() {
+            Qt.callLater(page.positionInitially)
+        }
     }
 
     FileDialog {
@@ -197,13 +205,6 @@ Kirigami.Page {
         boundsBehavior: Flickable.StopAtBounds
 
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
-
-        onCountChanged: {
-            if (!page.restored && count > 0) {
-                page.restored = true
-                Qt.callLater(page.positionInitially)
-            }
-        }
 
         delegate: Item {
             id: row

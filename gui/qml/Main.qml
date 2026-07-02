@@ -55,12 +55,19 @@ Kirigami.ApplicationWindow {
         if (conversationPage) {
             conversationPage.saveScrollNow()
         }
-        // Remove the current secondary page before resetting the model, so its
-        // list view is not torn down against an emptied model.
-        clearSecondary()
-        MessageModel.setChat(jid)
         Controller.currentChatJid = jid
-        conversationPage = pageStack.push(conversationComponent, { chatTitle: name, chatJid: jid })
+        if (conversationPage) {
+            // Reuse the live page instead of destroying and recreating it on every
+            // chat switch. That churn tore the list view down against a resetting
+            // model, which is what logged the delegate and scene warnings.
+            conversationPage.chatTitle = name
+            conversationPage.chatJid = jid
+            MessageModel.setChat(jid)
+        } else {
+            clearSecondary() // drop the settings page if it is open
+            MessageModel.setChat(jid)
+            conversationPage = pageStack.push(conversationComponent, { chatTitle: name, chatJid: jid })
+        }
         currentSecondary = "conversation"
     }
 
