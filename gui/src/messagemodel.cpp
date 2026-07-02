@@ -68,6 +68,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     }
     case QuotedTextRole:
         return m.quotedText;
+    case QuotedIdRole:
+        return m.quotedId;
     case EditedRole:
         return m.edited;
     case StarredRole:
@@ -105,6 +107,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {MediaHeightRole, "mediaHeight"},
         {ReactionsRole, "reactions"},
         {QuotedTextRole, "quotedText"},
+        {QuotedIdRole, "quotedId"},
         {EditedRole, "edited"},
         {StarredRole, "starred"},
     };
@@ -309,6 +312,7 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.mediaHeight = o.value(QStringLiteral("media_h")).toInt();
     item.edited = o.value(QStringLiteral("edited")).toBool();
     item.starred = o.value(QStringLiteral("starred")).toBool();
+    item.quotedId = o.value(QStringLiteral("quoted_id")).toString();
     item.quotedText = o.value(QStringLiteral("quoted_text")).toString();
     item.quotedSender = o.value(QStringLiteral("quoted_sender")).toString();
     const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();

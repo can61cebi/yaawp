@@ -134,6 +134,16 @@ Kirigami.Page {
         return esc.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1">$1</a>')
     }
 
+    function jumpToMessage(id) {
+        if (id.length === 0) {
+            return
+        }
+        const idx = MessageModel.indexOfMessage(id)
+        if (idx >= 0) {
+            messages.positionViewAtIndex(idx, ListView.Center)
+        }
+    }
+
     function startTyping() {
         if (!page.typingActive) {
             Ipc.setTyping(page.chatJid, true)
@@ -289,37 +299,46 @@ Kirigami.Page {
         id: contactSheet
         title: "Contact info"
 
-        ColumnLayout {
-            spacing: Kirigami.Units.largeSpacing
-            width: Kirigami.Units.gridUnit * 18
+        Item {
+            implicitWidth: Kirigami.Units.gridUnit * 18
+            implicitHeight: contactCol.implicitHeight
 
-            KirigamiComponents.Avatar {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 5
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 5
-                name: Controller.contactInfo.name !== undefined ? Controller.contactInfo.name : page.chatTitle
-                source: (Controller.contactInfo.avatar !== undefined && Controller.contactInfo.avatar.length > 0)
-                        ? "file://" + Controller.contactInfo.avatar : ""
-            }
-            Kirigami.Heading {
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                text: Controller.contactInfo.name !== undefined ? Controller.contactInfo.name : page.chatTitle
-                elide: Text.ElideRight
-            }
-            QQC2.Label {
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                visible: text.length > 0
-                text: Controller.contactInfo.phone !== undefined ? Controller.contactInfo.phone : ""
-                opacity: 0.8
-            }
-            QQC2.Label {
-                Layout.fillWidth: true
-                visible: text.length > 0
-                text: Controller.contactInfo.status !== undefined ? Controller.contactInfo.status : ""
-                wrapMode: Text.WordWrap
-                opacity: 0.8
+            ColumnLayout {
+                id: contactCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: Kirigami.Units.largeSpacing
+
+                KirigamiComponents.Avatar {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: Kirigami.Units.largeSpacing
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                    name: Controller.contactInfo.name !== undefined ? Controller.contactInfo.name : page.chatTitle
+                    source: (Controller.contactInfo.avatar !== undefined && Controller.contactInfo.avatar.length > 0)
+                            ? "file://" + Controller.contactInfo.avatar : ""
+                }
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    text: Controller.contactInfo.name !== undefined ? Controller.contactInfo.name : page.chatTitle
+                    elide: Text.ElideRight
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: text.length > 0
+                    text: Controller.contactInfo.phone !== undefined ? Controller.contactInfo.phone : ""
+                    opacity: 0.8
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: text.length > 0
+                    text: Controller.contactInfo.status !== undefined ? Controller.contactInfo.status : ""
+                    wrapMode: Text.WordWrap
+                    opacity: 0.8
+                }
             }
         }
     }
@@ -557,6 +576,7 @@ Kirigami.Page {
             required property string senderName
             required property string reactions
             required property string quotedText
+            required property string quotedId
             required property string daySeparator
             required property bool edited
             required property bool starred
@@ -722,6 +742,11 @@ Kirigami.Page {
                                 font.italic: true
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                                 color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+
+                                TapHandler {
+                                    enabled: row.quotedId.length > 0
+                                    onTapped: page.jumpToMessage(row.quotedId)
+                                }
                             }
 
                             Image {

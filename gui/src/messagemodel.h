@@ -24,6 +24,7 @@ struct MessageItem {
     QString mediaPath;
     int mediaWidth = 0;
     int mediaHeight = 0;
+    QString quotedId;
     QString quotedText;
     QString quotedSender;
     QMap<QString, QString> reactions; // sender jid -> emoji
@@ -58,6 +59,7 @@ public:
         MediaHeightRole,
         ReactionsRole,
         QuotedTextRole,
+        QuotedIdRole,
         EditedRole,
         StarredRole,
     };
