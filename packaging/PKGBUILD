@@ -1,0 +1,35 @@
+# Maintainer: can61cebi <can@cebi.tr>
+pkgname=yaawp
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Native WhatsApp client for Arch Linux and KDE Plasma"
+arch=('x86_64')
+url="https://github.com/can61cebi/yaawp"
+license=('custom')
+depends=('qt6-base' 'qt6-declarative' 'kirigami' 'prison' 'qqc2-desktop-style')
+makedepends=('go' 'cmake' 'extra-cmake-modules' 'ninja')
+source=("git+https://github.com/can61cebi/yaawp.git#tag=v$pkgver")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname/daemon"
+  export CGO_ENABLED=1
+  export GOFLAGS="-trimpath -mod=readonly -modcacherw"
+  go build -o bin/yaawp-daemon ./cmd/yaawp-daemon
+
+  cd "$srcdir/$pkgname/gui"
+  cmake -B build -G Ninja \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build build
+}
+
+package() {
+  install -Dm755 "$srcdir/$pkgname/daemon/bin/yaawp-daemon" "$pkgdir/usr/bin/yaawp-daemon"
+
+  cd "$srcdir/$pkgname/gui"
+  DESTDIR="$pkgdir" cmake --install build
+
+  install -Dm644 "$srcdir/$pkgname/packaging/systemd/yaawp-daemon.service" \
+    "$pkgdir/usr/lib/systemd/user/yaawp-daemon.service"
+}

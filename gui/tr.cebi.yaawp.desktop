@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=yaawp
+GenericName=WhatsApp Client
+Comment=Native WhatsApp client for KDE Plasma
+Exec=yaawp
+Icon=internet-mail
+Terminal=false
+Categories=Network;InstantMessaging;Qt;KDE;

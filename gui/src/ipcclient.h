@@ -1,0 +1,50 @@
+#pragma once
+
+#include <QByteArray>
+#include <QJsonObject>
+#include <QLocalSocket>
+#include <QObject>
+#include <QString>
+
+// IpcClient owns the Unix socket connection to yaawp-daemon and translates the
+// newline-delimited JSON protocol into Qt signals and invokable methods.
+class IpcClient : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged)
+
+public:
+    explicit IpcClient(QObject *parent = nullptr);
+
+    bool isConnected() const;
+
+    Q_INVOKABLE void connectToDaemon();
+    Q_INVOKABLE void login();
+    Q_INVOKABLE void logout();
+    Q_INVOKABLE void requestChats();
+    Q_INVOKABLE void requestMessages(const QString &chatJid, int limit = 50);
+    Q_INVOKABLE void sendText(const QString &chatJid, const QString &text);
+
+Q_SIGNALS:
+    void connectedChanged();
+    void qrReceived(const QString &code);
+    void pairSucceeded(const QString &jid, const QString &pushName);
+    void connectionStateChanged(const QString &state);
+    void messageReceived(const QJsonObject &message);
+    void receiptReceived(const QJsonObject &receipt);
+    void eventReceived(const QString &event, const QJsonObject &data);
+
+private Q_SLOTS:
+    void onReadyRead();
+    void onSocketConnected();
+    void onSocketDisconnected();
+
+private:
+    QString socketPath() const;
+    void send(const QString &method, const QJsonObject &params = {});
+    void handleLine(const QByteArray &line);
+
+    QLocalSocket m_socket;
+    QByteArray m_buffer;
+    quint64 m_nextId = 1;
+};

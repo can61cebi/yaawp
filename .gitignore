@@ -1,0 +1,19 @@
+# Go
+/daemon/bin/
+
+# CMake and Qt
+/gui/build/
+/build/
+
+# Local session data and databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Editor and OS
+*.log
+*~
+.DS_Store
+.idea/
+.vscode/
