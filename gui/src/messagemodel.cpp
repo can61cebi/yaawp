@@ -98,7 +98,11 @@ void MessageModel::onMessagesReceived(const QJsonArray &messages)
     beginResetModel();
     m_messages.clear();
     for (const QJsonValue &value : messages) {
-        m_messages.append(fromJson(value.toObject()));
+        const MessageItem item = fromJson(value.toObject());
+        if (item.text.isEmpty()) {
+            continue; // skip messages with no renderable text
+        }
+        m_messages.append(item);
     }
     endResetModel();
 }
@@ -116,5 +120,9 @@ void MessageModel::onMessageReceived(const QJsonObject &message)
     if (message.value(QStringLiteral("chat_jid")).toString() != m_chatJid) {
         return;
     }
-    append(fromJson(message));
+    const MessageItem item = fromJson(message);
+    if (item.text.isEmpty()) {
+        return;
+    }
+    append(item);
 }

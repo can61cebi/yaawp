@@ -10,26 +10,28 @@ Kirigami.ApplicationWindow {
     minimumWidth: 500
     minimumHeight: 400
 
-    pageStack.initialPage: Controller.loggedIn ? chatListComponent : loginComponent
+    property bool showingChats: false
+
+    pageStack.initialPage: Qt.resolvedUrl("LoginPage.qml")
+
+    // Swap the root page only when crossing the logged-in boundary, so the page
+    // is not recreated on every connection state change.
+    function refreshRoot() {
+        if (Controller.loggedIn && !showingChats) {
+            pageStack.replace(Qt.resolvedUrl("ChatListPage.qml"))
+            showingChats = true
+        } else if (!Controller.loggedIn && showingChats) {
+            pageStack.replace(Qt.resolvedUrl("LoginPage.qml"))
+            showingChats = false
+        }
+    }
 
     Connections {
         target: Controller
         function onConnectionStateChanged() {
-            if (Controller.loggedIn) {
-                root.pageStack.replace(chatListComponent)
-            } else {
-                root.pageStack.replace(loginComponent)
-            }
+            root.refreshRoot()
         }
     }
 
-    Component {
-        id: loginComponent
-        LoginPage {}
-    }
-
-    Component {
-        id: chatListComponent
-        ChatListPage {}
-    }
+    Component.onCompleted: refreshRoot()
 }

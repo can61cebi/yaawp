@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
 
@@ -32,6 +33,7 @@ private Q_SLOTS:
     void onQrReceived(const QString &code);
     void onConnectionStateChanged(const QString &state);
     void onPairSucceeded(const QString &jid, const QString &pushName);
+    void onEvent(const QString &event, const QJsonObject &data);
 
 private:
     IpcClient *m_ipc;

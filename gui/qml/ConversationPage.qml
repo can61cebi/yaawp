@@ -40,31 +40,40 @@ Kirigami.ScrollablePage {
         id: messages
         model: MessageModel
         spacing: Kirigami.Units.smallSpacing
+        bottomMargin: Kirigami.Units.smallSpacing
+        topMargin: Kirigami.Units.smallSpacing
 
         delegate: Item {
             id: row
-            width: messages.width
-            height: bubble.height + Kirigami.Units.smallSpacing
 
             required property bool fromMe
             required property string text
 
+            width: messages.width
+            implicitHeight: bubble.height
+
             Rectangle {
                 id: bubble
-                anchors.right: row.fromMe ? parent.right : undefined
                 anchors.left: row.fromMe ? undefined : parent.left
-                anchors.margins: Kirigami.Units.largeSpacing
-                width: Math.min(label.implicitWidth + Kirigami.Units.largeSpacing * 2, messages.width * 0.75)
-                height: label.implicitHeight + Kirigami.Units.largeSpacing
-                radius: Kirigami.Units.smallSpacing
+                anchors.right: row.fromMe ? parent.right : undefined
+                anchors.leftMargin: Kirigami.Units.largeSpacing
+                anchors.rightMargin: Kirigami.Units.largeSpacing
+
+                width: label.width
+                height: label.height
+                radius: Kirigami.Units.largeSpacing
                 color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
 
                 QQC2.Label {
                     id: label
-                    anchors.fill: parent
-                    anchors.margins: Kirigami.Units.largeSpacing
+                    width: Math.min(implicitWidth, messages.width * 0.72)
+                    leftPadding: Kirigami.Units.largeSpacing
+                    rightPadding: Kirigami.Units.largeSpacing
+                    topPadding: Kirigami.Units.smallSpacing * 2
+                    bottomPadding: Kirigami.Units.smallSpacing * 2
                     text: row.text
-                    wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                 }
             }

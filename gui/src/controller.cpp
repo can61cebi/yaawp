@@ -8,6 +8,7 @@ Controller::Controller(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::qrReceived, this, &Controller::onQrReceived);
     connect(ipc, &IpcClient::connectionStateChanged, this, &Controller::onConnectionStateChanged);
     connect(ipc, &IpcClient::pairSucceeded, this, &Controller::onPairSucceeded);
+    connect(ipc, &IpcClient::eventReceived, this, &Controller::onEvent);
 }
 
 void Controller::setCurrentChatJid(const QString &jid)
@@ -41,4 +42,14 @@ void Controller::onPairSucceeded(const QString &jid, const QString &pushName)
     Q_UNUSED(jid)
     Q_UNUSED(pushName)
     // Pairing is done; a connection event follows and refreshes the UI.
+}
+
+void Controller::onEvent(const QString &event, const QJsonObject &data)
+{
+    Q_UNUSED(data)
+    // History sync arrives in batches after linking; refresh the chat list so
+    // conversations appear without the user pressing Refresh.
+    if (event == QStringLiteral("history_sync")) {
+        m_ipc->requestChats();
+    }
 }

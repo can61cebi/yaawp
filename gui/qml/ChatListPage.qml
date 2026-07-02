@@ -15,11 +15,6 @@ Kirigami.ScrollablePage {
         }
     ]
 
-    Component {
-        id: conversationComponent
-        ConversationPage {}
-    }
-
     ListView {
         id: list
         model: ChatModel
@@ -51,7 +46,7 @@ Kirigami.ScrollablePage {
             onClicked: {
                 MessageModel.setChat(item.jid)
                 Controller.currentChatJid = item.jid
-                applicationWindow().pageStack.push(conversationComponent, { chatTitle: item.name })
+                applicationWindow().pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), { chatTitle: item.name })
             }
         }
 
