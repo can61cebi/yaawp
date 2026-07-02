@@ -10,6 +10,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/proto/waWeb"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -29,14 +30,17 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 			"push_name": e.client.Store.PushName,
 		}))
 	case *events.Message:
-		msg := messageToIPC(evt)
+		msg, ok := e.messageToIPC(evt)
+		if !ok {
+			return // non-renderable (protocol, reaction, empty)
+		}
 		if err := e.db.PutMessage(msg); err != nil {
 			log.Printf("persist message: %v", err)
 		}
 		e.emit(ipc.NewEvent(ipc.EventMessage, msg))
 	case *events.Receipt:
 		e.emit(ipc.NewEvent(ipc.EventReceipt, map[string]any{
-			"chat_jid":    evt.Chat.String(),
+			"chat_jid":    e.canonicalJID(evt.Chat.String()),
 			"message_ids": evt.MessageIDs,
 			"receipt":     string(evt.Type),
 		}))
@@ -46,7 +50,7 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 			state = "unavailable"
 		}
 		e.emit(ipc.NewEvent(ipc.EventPresence, map[string]any{
-			"jid":   evt.From.String(),
+			"jid":   e.canonicalJID(evt.From.String()),
 			"state": state,
 		}))
 	case *events.HistorySync:
@@ -65,12 +69,13 @@ func (e *Engine) persistHistory(data *waHistorySync.HistorySync) {
 	}
 	total := 0
 	for _, conv := range data.GetConversations() {
-		chatJID := conv.GetID()
-		if chatJID == "" {
+		rawID := conv.GetID()
+		if rawID == "" {
 			continue
 		}
+		chatJID := e.canonicalJID(rawID)
 		if name := conv.GetName(); name != "" {
-			_ = e.db.SetChatName(chatJID, name, strings.HasSuffix(chatJID, "@g.us"))
+			_ = e.db.SetChatName(chatJID, name, strings.HasSuffix(chatJID, "@"+types.GroupServer))
 		}
 		batch := make([]ipc.Message, 0, len(conv.GetMessages()))
 		for _, hm := range conv.GetMessages() {
@@ -78,8 +83,8 @@ func (e *Engine) persistHistory(data *waHistorySync.HistorySync) {
 			if wmi == nil {
 				continue
 			}
-			m := webMsgToIPC(chatJID, wmi)
-			if m.ID == "" {
+			m, ok := e.webMsgToIPC(chatJID, wmi)
+			if !ok || m.ID == "" {
 				continue
 			}
 			batch = append(batch, m)
@@ -95,29 +100,40 @@ func (e *Engine) persistHistory(data *waHistorySync.HistorySync) {
 	}
 }
 
-func messageToIPC(evt *events.Message) ipc.Message {
+// messageToIPC converts a live message event. It returns ok=false for messages
+// that have no user-visible content (protocol, reaction, and similar).
+func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
+	typ, text, ok := describeMessage(evt.Message)
+	if !ok {
+		return ipc.Message{}, false
+	}
 	return ipc.Message{
 		ID:        evt.Info.ID,
-		ChatJID:   evt.Info.Chat.String(),
-		SenderJID: evt.Info.Sender.String(),
+		ChatJID:   e.canonicalJID(evt.Info.Chat.String()),
+		SenderJID: e.canonicalJID(evt.Info.Sender.String()),
 		FromMe:    evt.Info.IsFromMe,
 		Timestamp: evt.Info.Timestamp.Unix(),
-		Type:      "text",
-		Text:      extractTextFromMessage(evt.Message),
-	}
+		Type:      typ,
+		Text:      text,
+	}, true
 }
 
-func webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) ipc.Message {
+// webMsgToIPC converts a history message. chatJID is expected to be canonical.
+func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Message, bool) {
+	typ, text, ok := describeMessage(wmi.GetMessage())
+	if !ok {
+		return ipc.Message{}, false
+	}
 	key := wmi.GetKey()
 	return ipc.Message{
 		ID:        key.GetID(),
 		ChatJID:   chatJID,
-		SenderJID: senderFromKey(chatJID, key),
+		SenderJID: e.canonicalJID(senderFromKey(chatJID, key)),
 		FromMe:    key.GetFromMe(),
 		Timestamp: int64(wmi.GetMessageTimestamp()),
-		Type:      "text",
-		Text:      extractTextFromMessage(wmi.GetMessage()),
-	}
+		Type:      typ,
+		Text:      text,
+	}, true
 }
 
 // senderFromKey derives the sender JID from a message key. Group messages carry
@@ -135,16 +151,51 @@ func senderFromKey(chatJID string, key *waCommon.MessageKey) string {
 	return chatJID
 }
 
-// extractTextFromMessage returns the textual content of a message, if any.
-func extractTextFromMessage(msg *waE2E.Message) string {
+// describeMessage returns a message type and a display text. ok is false when
+// the message has no user-visible content and should be skipped.
+func describeMessage(msg *waE2E.Message) (typ, text string, ok bool) {
 	if msg == nil {
-		return ""
+		return "", "", false
 	}
 	if c := msg.GetConversation(); c != "" {
-		return c
+		return "text", c, true
 	}
 	if ext := msg.GetExtendedTextMessage(); ext != nil {
-		return ext.GetText()
+		if t := ext.GetText(); t != "" {
+			return "text", t, true
+		}
 	}
-	return ""
+	if img := msg.GetImageMessage(); img != nil {
+		return "image", fallbackText(img.GetCaption(), "[image]"), true
+	}
+	if vid := msg.GetVideoMessage(); vid != nil {
+		return "video", fallbackText(vid.GetCaption(), "[video]"), true
+	}
+	if msg.GetAudioMessage() != nil {
+		return "audio", "[voice message]", true
+	}
+	if doc := msg.GetDocumentMessage(); doc != nil {
+		name := doc.GetFileName()
+		if name == "" {
+			name = doc.GetTitle()
+		}
+		return "document", fallbackText(name, "[document]"), true
+	}
+	if msg.GetStickerMessage() != nil {
+		return "sticker", "[sticker]", true
+	}
+	if msg.GetContactMessage() != nil {
+		return "contact", "[contact]", true
+	}
+	if msg.GetLocationMessage() != nil {
+		return "location", "[location]", true
+	}
+	return "", "", false
+}
+
+func fallbackText(s, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
 }

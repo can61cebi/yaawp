@@ -12,12 +12,20 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waCompanionReg"
 	"go.mau.fi/whatsmeow/proto/waE2E"
+	waStore "go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
 )
+
+// deviceOS is the label shown under WhatsApp Linked Devices. A browser-like
+// value blends in with a normal web session instead of exposing the library
+// name. Change it to "yaawp" for a visible project label. The name is fixed at
+// pair time, so an already linked device keeps whatever name it was paired with.
+const deviceOS = "Chrome (Linux)"
 
 // Engine holds the WhatsApp session and forwards protocol events to the GUI
 // through the installed sink. It persists chats and messages in a local store.
@@ -33,6 +41,10 @@ type Engine struct {
 // New opens the session and application stores, creates the client and attaches
 // the event handler.
 func New(ctx context.Context) (*Engine, error) {
+	// Present a browser-like device identity rather than the library default.
+	waStore.DeviceProps.Os = proto.String(deviceOS)
+	waStore.DeviceProps.PlatformType = waCompanionReg.DeviceProps_CHROME.Enum()
+
 	dbPath, err := store.DatabasePath()
 	if err != nil {
 		return nil, err
@@ -82,11 +94,13 @@ func (e *Engine) Start() error {
 	if e.client.Store.ID == nil {
 		return e.beginQRLogin()
 	}
+	e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "connecting"}))
 	return e.client.Connect()
 }
 
 // beginQRLogin opens the QR channel, connects, and emits each QR code as an event.
 func (e *Engine) beginQRLogin() error {
+	e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "connecting"}))
 	qrChan, err := e.client.GetQRChannel(e.ctx)
 	if err != nil {
 		return err
@@ -115,6 +129,26 @@ func (e *Engine) Disconnect() {
 	if e.db != nil {
 		_ = e.db.Close()
 	}
+}
+
+// canonicalJID maps a hidden LID user to its phone-number JID when a mapping is
+// known, so a single contact does not appear under two identities.
+func (e *Engine) canonicalJID(jidStr string) string {
+	jid, err := types.ParseJID(jidStr)
+	if err != nil {
+		return jidStr
+	}
+	if jid.Server != types.HiddenUserServer {
+		return jidStr
+	}
+	if e.client.Store.LIDs == nil {
+		return jidStr
+	}
+	pn, err := e.client.Store.LIDs.GetPNForLID(e.ctx, jid)
+	if err != nil || pn.IsEmpty() {
+		return jidStr
+	}
+	return pn.String()
 }
 
 // ---- ipc.Backend implementation ----
