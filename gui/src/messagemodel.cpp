@@ -230,6 +230,22 @@ void MessageModel::editMessage(const QString &id, const QString &text)
     m_ipc->editMessage(m_chatJid, id, trimmed);
 }
 
+int MessageModel::searchFrom(const QString &query, int fromRow, bool forward) const
+{
+    const int n = static_cast<int>(m_messages.size());
+    if (query.isEmpty() || n == 0) {
+        return -1;
+    }
+    for (int step = 1; step <= n; ++step) {
+        int i = forward ? fromRow + step : fromRow - step;
+        i = ((i % n) + n) % n; // wrap into [0, n)
+        if (m_messages.at(i).text.contains(query, Qt::CaseInsensitive)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void MessageModel::toggleStar(const QString &id)
 {
     for (int i = 0; i < m_messages.size(); ++i) {

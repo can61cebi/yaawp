@@ -13,12 +13,23 @@ Kirigami.Page {
     property bool typingActive: false
     property string editingId: ""
     property var forwardData: null
+    property bool searchActive: false
+    property string searchQuery: ""
+    property int searchRow: -1
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
     padding: 0
 
     actions: [
+        Kirigami.Action {
+            text: "Search"
+            icon.name: "search"
+            onTriggered: {
+                page.searchActive = true
+                searchField.forceActiveFocus()
+            }
+        },
         Kirigami.Action {
             text: "Group info"
             icon.name: "documentinfo"
@@ -76,6 +87,24 @@ Kirigami.Page {
         }
         page.forwardData = null
         forwardSheet.close()
+    }
+
+    function gotoNextMatch(forward) {
+        if (page.searchQuery.length === 0) {
+            return
+        }
+        const r = MessageModel.searchFrom(page.searchQuery, page.searchRow, forward)
+        if (r >= 0) {
+            page.searchRow = r
+            messages.positionViewAtIndex(r, ListView.Center)
+        }
+    }
+
+    function closeSearch() {
+        page.searchActive = false
+        page.searchQuery = ""
+        page.searchRow = -1
+        searchField.text = ""
     }
 
     function startTyping() {
@@ -460,6 +489,9 @@ Kirigami.Page {
                         height: content.height + vpad * 2
                         radius: Kirigami.Units.largeSpacing
                         color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
+                        border.width: (page.searchActive && page.searchQuery.length > 0
+                                       && row.text.toLowerCase().indexOf(page.searchQuery.toLowerCase()) >= 0) ? 2 : 0
+                        border.color: Kirigami.Theme.neutralTextColor
 
                         TapHandler {
                             acceptedButtons: Qt.RightButton
@@ -714,6 +746,47 @@ Kirigami.Page {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    QQC2.Pane {
+        id: searchBar
+        visible: page.searchActive
+        z: 10
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        padding: Kirigami.Units.smallSpacing
+
+        contentItem: RowLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.TextField {
+                id: searchField
+                Layout.fillWidth: true
+                placeholderText: "Search in chat"
+                onTextChanged: {
+                    page.searchQuery = text
+                    page.searchRow = -1
+                    page.gotoNextMatch(true)
+                }
+                onAccepted: page.gotoNextMatch(true)
+                Keys.onEscapePressed: page.closeSearch()
+            }
+            QQC2.ToolButton {
+                icon.name: "go-up"
+                enabled: page.searchQuery.length > 0
+                onClicked: page.gotoNextMatch(true)
+            }
+            QQC2.ToolButton {
+                icon.name: "go-down"
+                enabled: page.searchQuery.length > 0
+                onClicked: page.gotoNextMatch(false)
+            }
+            QQC2.ToolButton {
+                icon.name: "dialog-close"
+                onClicked: page.closeSearch()
             }
         }
     }

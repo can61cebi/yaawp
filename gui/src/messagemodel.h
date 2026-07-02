@@ -81,6 +81,9 @@ public:
     Q_INVOKABLE void openMedia(const QString &id);
     Q_INVOKABLE void editMessage(const QString &id, const QString &text);
     Q_INVOKABLE void toggleStar(const QString &id);
+    // Find the next message (from fromRow, in the given direction, wrapping)
+    // whose text matches query. Returns its row or -1.
+    Q_INVOKABLE int searchFrom(const QString &query, int fromRow, bool forward) const;
 
     QString replyText() const { return m_replyText; }
     QString replySenderName() const { return m_replySenderName; }
