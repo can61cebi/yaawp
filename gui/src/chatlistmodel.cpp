@@ -35,6 +35,10 @@ QVariant ChatListModel::data(const QModelIndex &index, int role) const
         return c.lastTs;
     case UnreadRole:
         return c.unread;
+    case PinnedRole:
+        return c.pinned;
+    case MutedRole:
+        return c.muted;
     default:
         return {};
     }
@@ -48,6 +52,8 @@ QHash<int, QByteArray> ChatListModel::roleNames() const
         {LastPreviewRole, "lastPreview"},
         {LastTsRole, "lastTs"},
         {UnreadRole, "unread"},
+        {PinnedRole, "pinned"},
+        {MutedRole, "muted"},
     };
 }
 
@@ -63,6 +69,8 @@ void ChatListModel::onChatsReceived(const QJsonArray &chats)
         item.lastPreview = o.value(QStringLiteral("last_message_preview")).toString();
         item.lastTs = static_cast<qint64>(o.value(QStringLiteral("last_message_ts")).toDouble());
         item.unread = o.value(QStringLiteral("unread_count")).toInt();
+        item.pinned = o.value(QStringLiteral("pinned")).toBool();
+        item.muted = o.value(QStringLiteral("muted")).toBool();
         m_chats.append(item);
     }
     endResetModel();

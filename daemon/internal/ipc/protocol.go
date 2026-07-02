@@ -30,6 +30,8 @@ const (
 	MethodSetActiveChat     = "set_active_chat"
 	MethodEditMessage       = "edit_message"
 	MethodGroupInfo         = "group_info"
+	MethodSetPinned         = "set_pinned"
+	MethodSetMuted          = "set_muted"
 )
 
 // Event names (daemon to GUI).
@@ -135,6 +137,8 @@ type Chat struct {
 	LastTS      int64  `json:"last_message_ts"`
 	LastPreview string `json:"last_message_preview"`
 	UnreadCount int    `json:"unread_count"`
+	Pinned      bool   `json:"pinned"`
+	Muted       bool   `json:"muted"`
 }
 
 type Message struct {
@@ -184,6 +188,18 @@ type GroupInfoParams struct {
 	JID string `json:"jid"`
 }
 
+// SetPinnedParams pins or unpins a chat to the top of the list.
+type SetPinnedParams struct {
+	JID    string `json:"jid"`
+	Pinned bool   `json:"pinned"`
+}
+
+// SetMutedParams mutes or unmutes a chat's notifications.
+type SetMutedParams struct {
+	JID   string `json:"jid"`
+	Muted bool   `json:"muted"`
+}
+
 // Backend is implemented by the engine. The IPC server dispatches commands to
 // it and returns a JSON-serialisable result or an error.
 type Backend interface {
@@ -206,4 +222,6 @@ type Backend interface {
 	SetActiveChat(p SetActiveChatParams) (interface{}, error)
 	EditMessage(p EditMessageParams) (interface{}, error)
 	GroupInfo(p GroupInfoParams) (interface{}, error)
+	SetPinned(p SetPinnedParams) (interface{}, error)
+	SetMuted(p SetMutedParams) (interface{}, error)
 }

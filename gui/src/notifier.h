@@ -1,7 +1,10 @@
 #pragma once
 
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QObject>
+#include <QSet>
+#include <QString>
 
 class IpcClient;
 class Controller;
@@ -17,8 +20,10 @@ public:
 
 private Q_SLOTS:
     void onMessageReceived(const QJsonObject &message);
+    void onChatsReceived(const QJsonArray &chats);
 
 private:
     IpcClient *m_ipc;
     Controller *m_controller;
+    QSet<QString> m_muted; // jids whose notifications are silenced
 };

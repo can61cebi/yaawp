@@ -293,6 +293,22 @@ void IpcClient::requestGroupInfo(const QString &jid)
     send(QStringLiteral("group_info"), p);
 }
 
+void IpcClient::setPinned(const QString &jid, bool pinned)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    p.insert(QStringLiteral("pinned"), pinned);
+    send(QStringLiteral("set_pinned"), p);
+}
+
+void IpcClient::setMuted(const QString &jid, bool muted)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    p.insert(QStringLiteral("muted"), muted);
+    send(QStringLiteral("set_muted"), p);
+}
+
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)
 {
     QJsonObject p;

@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS chats (
     is_group     INTEGER NOT NULL DEFAULT 0,
     last_ts      INTEGER NOT NULL DEFAULT 0,
     last_preview TEXT NOT NULL DEFAULT '',
-    unread       INTEGER NOT NULL DEFAULT 0
+    unread       INTEGER NOT NULL DEFAULT 0,
+    pinned       INTEGER NOT NULL DEFAULT 0,
+    muted        INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS messages (
     id         TEXT NOT NULL,
@@ -98,6 +100,8 @@ func (d *DB) migrate() {
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_h INTEGER NOT NULL DEFAULT 0`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN raw_media BLOB`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN edited INTEGER NOT NULL DEFAULT 0`)
+	_, _ = d.sql.Exec(`ALTER TABLE chats ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`)
+	_, _ = d.sql.Exec(`ALTER TABLE chats ADD COLUMN muted INTEGER NOT NULL DEFAULT 0`)
 }
 
 // Close releases the database handle.
@@ -248,6 +252,18 @@ func (d *DB) ResetUnread(jid string) error {
 	return err
 }
 
+// SetPinned pins or unpins a chat so it sorts to the top of the list.
+func (d *DB) SetPinned(jid string, pinned bool) error {
+	_, err := d.sql.Exec(`UPDATE chats SET pinned = ? WHERE jid = ?`, boolToInt(pinned), jid)
+	return err
+}
+
+// SetMuted mutes or unmutes a chat's notifications.
+func (d *DB) SetMuted(jid string, muted bool) error {
+	_, err := d.sql.Exec(`UPDATE chats SET muted = ? WHERE jid = ?`, boolToInt(muted), jid)
+	return err
+}
+
 // SetChatName sets the display name and group flag for a chat.
 func (d *DB) SetChatName(jid, name string, isGroup bool) error {
 	_, err := d.sql.Exec(
@@ -261,8 +277,8 @@ func (d *DB) SetChatName(jid, name string, isGroup bool) error {
 // ListChats returns all known chats, most recent first.
 func (d *DB) ListChats() ([]ipc.Chat, error) {
 	rows, err := d.sql.Query(
-		`SELECT jid, name, is_group, last_ts, last_preview, unread
-		 FROM chats ORDER BY last_ts DESC`)
+		`SELECT jid, name, is_group, last_ts, last_preview, unread, pinned, muted
+		 FROM chats ORDER BY pinned DESC, last_ts DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -271,12 +287,14 @@ func (d *DB) ListChats() ([]ipc.Chat, error) {
 	chats := []ipc.Chat{}
 	for rows.Next() {
 		var c ipc.Chat
-		var isGroup, unread int
-		if err := rows.Scan(&c.JID, &c.Name, &isGroup, &c.LastTS, &c.LastPreview, &unread); err != nil {
+		var isGroup, unread, pinned, muted int
+		if err := rows.Scan(&c.JID, &c.Name, &isGroup, &c.LastTS, &c.LastPreview, &unread, &pinned, &muted); err != nil {
 			return nil, err
 		}
 		c.IsGroup = isGroup != 0
 		c.UnreadCount = unread
+		c.Pinned = pinned != 0
+		c.Muted = muted != 0
 		chats = append(chats, c)
 	}
 	return chats, rows.Err()

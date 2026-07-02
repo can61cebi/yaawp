@@ -13,6 +13,18 @@ Notifier::Notifier(IpcClient *ipc, Controller *controller, QObject *parent)
     , m_controller(controller)
 {
     connect(ipc, &IpcClient::messageReceived, this, &Notifier::onMessageReceived);
+    connect(ipc, &IpcClient::chatsReceived, this, &Notifier::onChatsReceived);
+}
+
+void Notifier::onChatsReceived(const QJsonArray &chats)
+{
+    m_muted.clear();
+    for (const QJsonValue &value : chats) {
+        const QJsonObject o = value.toObject();
+        if (o.value(QStringLiteral("muted")).toBool()) {
+            m_muted.insert(o.value(QStringLiteral("jid")).toString());
+        }
+    }
 }
 
 void Notifier::onMessageReceived(const QJsonObject &message)
@@ -23,6 +35,9 @@ void Notifier::onMessageReceived(const QJsonObject &message)
     const QString chatJid = message.value(QStringLiteral("chat_jid")).toString();
     if (chatJid == m_controller->currentChatJid()) {
         return; // The user is already looking at this chat.
+    }
+    if (m_muted.contains(chatJid)) {
+        return; // The chat is muted.
     }
     const QString text = message.value(QStringLiteral("text")).toString();
     if (text.isEmpty()) {

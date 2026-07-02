@@ -37,6 +37,8 @@ public:
     Q_INVOKABLE void setActiveChat(const QString &jid);
     Q_INVOKABLE void editMessage(const QString &chatJid, const QString &id, const QString &text);
     Q_INVOKABLE void requestGroupInfo(const QString &jid);
+    Q_INVOKABLE void setPinned(const QString &jid, bool pinned);
+    Q_INVOKABLE void setMuted(const QString &jid, bool muted);
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:

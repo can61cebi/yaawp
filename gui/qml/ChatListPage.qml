@@ -63,6 +63,8 @@ Kirigami.Page {
                 required property string name
                 required property string lastPreview
                 required property int unread
+                required property bool pinned
+                required property bool muted
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.largeSpacing
@@ -91,6 +93,23 @@ Kirigami.Page {
                         }
                     }
 
+                    Kirigami.Icon {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: item.muted
+                        source: "audio-volume-muted"
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                        opacity: 0.6
+                    }
+                    Kirigami.Icon {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: item.pinned
+                        source: "pin"
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                        opacity: 0.6
+                    }
+
                     Rectangle {
                         Layout.alignment: Qt.AlignVCenter
                         visible: item.unread > 0
@@ -106,6 +125,33 @@ Kirigami.Page {
                             color: Kirigami.Theme.highlightedTextColor
                             font.pointSize: Kirigami.Theme.smallFont.pointSize
                             font.bold: true
+                        }
+                    }
+                }
+
+                TapHandler {
+                    acceptedButtons: Qt.RightButton
+                    onTapped: chatMenu.popup()
+                }
+                TapHandler {
+                    acceptedDevices: PointerDevice.TouchScreen
+                    onLongPressed: chatMenu.popup()
+                }
+
+                QQC2.Menu {
+                    id: chatMenu
+                    QQC2.MenuItem {
+                        text: item.pinned ? "Unpin" : "Pin"
+                        onTriggered: {
+                            Ipc.setPinned(item.jid, !item.pinned)
+                            Ipc.requestChats()
+                        }
+                    }
+                    QQC2.MenuItem {
+                        text: item.muted ? "Unmute" : "Mute"
+                        onTriggered: {
+                            Ipc.setMuted(item.jid, !item.muted)
+                            Ipc.requestChats()
                         }
                     }
                 }

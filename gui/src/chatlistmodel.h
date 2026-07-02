@@ -14,6 +14,8 @@ struct ChatItem {
     QString lastPreview;
     qint64 lastTs = 0;
     int unread = 0;
+    bool pinned = false;
+    bool muted = false;
 };
 
 // ChatListModel holds the list of conversations. It is filled from the daemon
@@ -29,6 +31,8 @@ public:
         LastPreviewRole,
         LastTsRole,
         UnreadRole,
+        PinnedRole,
+        MutedRole,
     };
 
     explicit ChatListModel(IpcClient *ipc, QObject *parent = nullptr);

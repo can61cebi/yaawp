@@ -286,6 +286,22 @@ func (e *Engine) GroupInfo(p ipc.GroupInfoParams) (interface{}, error) {
 	}, nil
 }
 
+// SetPinned pins or unpins a chat so it sorts to the top of the list.
+func (e *Engine) SetPinned(p ipc.SetPinnedParams) (interface{}, error) {
+	if err := e.db.SetPinned(p.JID, p.Pinned); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
+}
+
+// SetMuted mutes or unmutes a chat's notifications.
+func (e *Engine) SetMuted(p ipc.SetMutedParams) (interface{}, error) {
+	if err := e.db.SetMuted(p.JID, p.Muted); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ok": true}, nil
+}
+
 // resolveContactName looks up a cached display name for a user JID.
 func (e *Engine) resolveContactName(jidStr string) string {
 	jid, err := types.ParseJID(jidStr)

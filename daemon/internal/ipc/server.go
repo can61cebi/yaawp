@@ -175,6 +175,14 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p GroupInfoParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.GroupInfo(p)
+	case MethodSetPinned:
+		var p SetPinnedParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.SetPinned(p)
+	case MethodSetMuted:
+		var p SetMutedParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.SetMuted(p)
 	default:
 		err = errUnknownMethod
 	}
