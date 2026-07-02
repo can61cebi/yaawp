@@ -67,6 +67,7 @@ Q_SIGNALS:
     void contactInfoReceived(const QJsonObject &info);
     void starredReceived(const QJsonArray &messages);
     void avatarReceived(const QString &jid, const QString &path);
+    void commandFailed(const QString &method, const QString &error);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:
@@ -81,7 +82,7 @@ private:
     void handleLine(const QByteArray &line);
     void ensureDaemonRunning();
     void handleEvent(const QString &event, const QJsonObject &data);
-    void handleResponse(const QString &id, bool ok, const QJsonValue &result);
+    void handleResponse(const QString &id, bool ok, const QJsonValue &result, const QString &error);
 
     QLocalSocket m_socket;
     QByteArray m_buffer;

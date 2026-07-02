@@ -104,6 +104,20 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    // Surface failures of user actions as a passive notification, but stay quiet
+    // about background queries that fail routinely while offline.
+    Connections {
+        target: Ipc
+        function onCommandFailed(method, error) {
+            const quiet = ["group_info", "contact_info", "list_starred", "request_avatar",
+                           "list_messages", "list_chats", "get_state", "set_active_chat",
+                           "mark_read", "subscribe_presence"]
+            if (quiet.indexOf(method) === -1 && error.length > 0) {
+                root.showPassiveNotification("Failed: " + error)
+            }
+        }
+    }
+
     Component.onCompleted: refreshRoot()
 
     Component { id: loginComponent; LoginPage {} }

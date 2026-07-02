@@ -191,6 +191,19 @@ Kirigami.Page {
         onTriggered: page.stopTyping()
     }
 
+    Shortcut {
+        sequence: StandardKey.Find
+        onActivated: {
+            page.searchActive = true
+            searchField.forceActiveFocus()
+        }
+    }
+    Shortcut {
+        sequences: ["Escape"]
+        enabled: page.searchActive
+        onActivated: page.closeSearch()
+    }
+
     // Restore the scroll position each time a chat's messages finish loading.
     // This fires even when the new chat has the same message count as the old.
     Connections {

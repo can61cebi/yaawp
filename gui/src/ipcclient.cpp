@@ -111,7 +111,8 @@ void IpcClient::handleLine(const QByteArray &line)
     } else if (type == QStringLiteral("resp")) {
         handleResponse(obj.value(QStringLiteral("id")).toString(),
                        obj.value(QStringLiteral("ok")).toBool(),
-                       obj.value(QStringLiteral("result")));
+                       obj.value(QStringLiteral("result")),
+                       obj.value(QStringLiteral("error")).toString());
     }
 }
 
@@ -171,10 +172,11 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
     Q_EMIT eventReceived(event, data);
 }
 
-void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &result)
+void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &result, const QString &error)
 {
     const QString method = m_pending.take(id);
     if (!ok) {
+        Q_EMIT commandFailed(method, error);
         return;
     }
     if (method == QStringLiteral("list_chats")) {
