@@ -264,6 +264,20 @@ void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, c
     send(QStringLiteral("send_reaction"), p);
 }
 
+void IpcClient::sendMedia(const QString &chatJid, const QString &filePath, const QString &caption)
+{
+    if (filePath.isEmpty()) {
+        return;
+    }
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("file_path"), filePath);
+    if (!caption.isEmpty()) {
+        p.insert(QStringLiteral("caption"), caption);
+    }
+    send(QStringLiteral("send_media"), p);
+}
+
 void IpcClient::markRead(const QString &chatJid, const QStringList &ids)
 {
     if (ids.isEmpty()) {

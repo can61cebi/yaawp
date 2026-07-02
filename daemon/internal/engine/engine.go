@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -510,4 +511,81 @@ func (e *Engine) SendReaction(p ipc.SendReactionParams) (interface{}, error) {
 		"from_me":    true,
 	}))
 	return map[string]any{"ok": true}, nil
+}
+
+// SendMedia uploads a local file and sends it as an image or a document.
+func (e *Engine) SendMedia(p ipc.SendMediaParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	data, err := os.ReadFile(p.FilePath)
+	if err != nil {
+		return nil, fmt.Errorf("read file: %w", err)
+	}
+	mimeType := http.DetectContentType(data)
+
+	var msg *waE2E.Message
+	msgType := "document"
+	if strings.HasPrefix(mimeType, "image/") {
+		up, upErr := e.client.Upload(e.ctx, data, whatsmeow.MediaImage)
+		if upErr != nil {
+			return nil, fmt.Errorf("upload: %w", upErr)
+		}
+		img := &waE2E.ImageMessage{
+			URL:           proto.String(up.URL),
+			DirectPath:    proto.String(up.DirectPath),
+			MediaKey:      up.MediaKey,
+			FileEncSHA256: up.FileEncSHA256,
+			FileSHA256:    up.FileSHA256,
+			FileLength:    proto.Uint64(up.FileLength),
+			Mimetype:      proto.String(mimeType),
+		}
+		if p.Caption != "" {
+			img.Caption = proto.String(p.Caption)
+		}
+		msg = &waE2E.Message{ImageMessage: img}
+		msgType = "image"
+	} else {
+		up, upErr := e.client.Upload(e.ctx, data, whatsmeow.MediaDocument)
+		if upErr != nil {
+			return nil, fmt.Errorf("upload: %w", upErr)
+		}
+		doc := &waE2E.DocumentMessage{
+			URL:           proto.String(up.URL),
+			DirectPath:    proto.String(up.DirectPath),
+			MediaKey:      up.MediaKey,
+			FileEncSHA256: up.FileEncSHA256,
+			FileSHA256:    up.FileSHA256,
+			FileLength:    proto.Uint64(up.FileLength),
+			Mimetype:      proto.String(mimeType),
+			FileName:      proto.String(filepath.Base(p.FilePath)),
+		}
+		if p.Caption != "" {
+			doc.Caption = proto.String(p.Caption)
+		}
+		msg = &waE2E.Message{DocumentMessage: doc}
+	}
+
+	resp, err := e.client.SendMessage(e.ctx, jid, msg)
+	if err != nil {
+		return nil, err
+	}
+	sent := ipc.Message{
+		ID:        resp.ID,
+		ChatJID:   p.ChatJID,
+		FromMe:    true,
+		Timestamp: resp.Timestamp.Unix(),
+		Type:      msgType,
+		Text:      p.Caption,
+		Status:    "sent",
+	}
+	if msgType == "image" {
+		sent.MediaPath = p.FilePath // show the local file inline right away
+	} else if p.Caption == "" {
+		sent.Text = filepath.Base(p.FilePath)
+	}
+	_ = e.db.PutMessage(sent)
+	e.emit(ipc.NewEvent(ipc.EventMessage, sent))
+	return map[string]any{"message_id": resp.ID}, nil
 }

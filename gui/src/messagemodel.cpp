@@ -119,6 +119,15 @@ void MessageModel::sendText(const QString &text)
     clearReply();
 }
 
+void MessageModel::sendFile(const QUrl &fileUrl, const QString &caption)
+{
+    const QString path = fileUrl.toLocalFile();
+    if (m_chatJid.isEmpty() || path.isEmpty()) {
+        return;
+    }
+    m_ipc->sendMedia(m_chatJid, path, caption);
+}
+
 void MessageModel::setReplyTo(const QString &messageId)
 {
     for (const MessageItem &m : m_messages) {

@@ -25,6 +25,7 @@ const (
 	MethodSubscribePresence = "subscribe_presence"
 	MethodDeleteMessage     = "delete_message"
 	MethodSendReaction      = "send_reaction"
+	MethodSendMedia         = "send_media"
 )
 
 // Event names (daemon to GUI).
@@ -115,6 +116,12 @@ type SendReactionParams struct {
 	Emoji     string `json:"emoji"`
 }
 
+type SendMediaParams struct {
+	ChatJID  string `json:"chat_jid"`
+	FilePath string `json:"file_path"`
+	Caption  string `json:"caption,omitempty"`
+}
+
 type Chat struct {
 	JID         string `json:"jid"`
 	Name        string `json:"name"`
@@ -160,4 +167,5 @@ type Backend interface {
 	SubscribePresence(p SubscribePresenceParams) (interface{}, error)
 	DeleteMessage(p DeleteMessageParams) (interface{}, error)
 	SendReaction(p SendReactionParams) (interface{}, error)
+	SendMedia(p SendMediaParams) (interface{}, error)
 }

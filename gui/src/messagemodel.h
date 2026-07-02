@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
+#include <QUrl>
 
 class IpcClient;
 
@@ -59,6 +60,7 @@ public:
 
     Q_INVOKABLE void setChat(const QString &jid);
     Q_INVOKABLE void sendText(const QString &text);
+    Q_INVOKABLE void sendFile(const QUrl &fileUrl, const QString &caption);
     Q_INVOKABLE void deleteMessage(const QString &id);
     Q_INVOKABLE void react(const QString &messageId, const QString &emoji);
     Q_INVOKABLE void setReplyTo(const QString &messageId);

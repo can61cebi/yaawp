@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
 
 Kirigami.Page {
@@ -75,6 +76,15 @@ Kirigami.Page {
         onTriggered: page.stopTyping()
     }
 
+    FileDialog {
+        id: fileDialog
+        title: "Send a file"
+        onAccepted: {
+            MessageModel.sendFile(selectedFile, input.text)
+            input.clear()
+        }
+    }
+
     header: QQC2.Control {
         visible: Controller.currentChatStatus.length > 0
         height: visible ? implicitHeight : 0
@@ -133,6 +143,10 @@ Kirigami.Page {
 
             RowLayout {
                 Layout.fillWidth: true
+                QQC2.ToolButton {
+                    icon.name: "mail-attachment-symbolic"
+                    onClicked: fileDialog.open()
+                }
                 QQC2.TextField {
                     id: input
                     Layout.fillWidth: true
