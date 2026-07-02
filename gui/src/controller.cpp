@@ -3,7 +3,9 @@
 
 #include <QClipboard>
 #include <QDateTime>
+#include <QDesktopServices>
 #include <QGuiApplication>
+#include <QUrl>
 
 Controller::Controller(IpcClient *ipc, QObject *parent)
     : QObject(parent)
@@ -93,6 +95,13 @@ void Controller::copyToClipboard(const QString &text) const
 {
     if (QClipboard *clipboard = QGuiApplication::clipboard()) {
         clipboard->setText(text);
+    }
+}
+
+void Controller::openFile(const QString &path) const
+{
+    if (!path.isEmpty()) {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
     }
 }
 

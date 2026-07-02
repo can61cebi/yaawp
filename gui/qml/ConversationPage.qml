@@ -377,6 +377,11 @@ Kirigami.Page {
                                 sourceSize.width: maxW
                                 width: natW > 0 ? Math.min(natW, maxW) : maxW
                                 height: natW > 0 ? width * (natH / natW) : maxW * 0.6
+
+                                TapHandler {
+                                    acceptedButtons: Qt.LeftButton
+                                    onTapped: if (bubble.hasMedia) Controller.openFile(row.mediaPath)
+                                }
                             }
 
                             QQC2.Label {

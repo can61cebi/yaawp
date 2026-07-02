@@ -29,6 +29,7 @@ public:
     void setCurrentChatJid(const QString &jid);
 
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
+    Q_INVOKABLE void openFile(const QString &path) const;
     Q_INVOKABLE void saveScroll(const QString &jid, double contentY);
     Q_INVOKABLE double savedScroll(const QString &jid) const;
 
