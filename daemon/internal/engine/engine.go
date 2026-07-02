@@ -252,6 +252,40 @@ func (e *Engine) ListChats() (interface{}, error) {
 	return chats, nil
 }
 
+// GroupInfo returns a group's metadata and participant list with resolved names.
+func (e *Engine) GroupInfo(p ipc.GroupInfoParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.JID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	gi, err := e.client.GetGroupInfo(e.ctx, jid)
+	if err != nil {
+		return nil, err
+	}
+	parts := make([]map[string]any, 0, len(gi.Participants))
+	for _, pt := range gi.Participants {
+		name := e.resolveContactName(pt.JID.String())
+		if name == "" {
+			name = pt.DisplayName
+		}
+		if name == "" {
+			name = pt.JID.User
+		}
+		parts = append(parts, map[string]any{
+			"jid":      e.canonicalJID(pt.JID.String()),
+			"name":     name,
+			"is_admin": pt.IsAdmin || pt.IsSuperAdmin,
+		})
+	}
+	return map[string]any{
+		"jid":               p.JID,
+		"name":              gi.Name,
+		"topic":             gi.Topic,
+		"participant_count": len(gi.Participants),
+		"participants":      parts,
+	}, nil
+}
+
 // resolveContactName looks up a cached display name for a user JID.
 func (e *Engine) resolveContactName(jidStr string) string {
 	jid, err := types.ParseJID(jidStr)

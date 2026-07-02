@@ -17,6 +17,18 @@ Controller::Controller(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::eventReceived, this, &Controller::onEvent);
     connect(ipc, &IpcClient::chatPresenceChanged, this, &Controller::onChatPresence);
     connect(ipc, &IpcClient::presenceChanged, this, &Controller::onPresence);
+    connect(ipc, &IpcClient::groupInfoReceived, this, &Controller::onGroupInfoReceived);
+}
+
+void Controller::requestGroupInfo(const QString &jid)
+{
+    m_ipc->requestGroupInfo(jid);
+}
+
+void Controller::onGroupInfoReceived(const QJsonObject &info)
+{
+    m_groupInfo = info.toVariantMap();
+    Q_EMIT groupInfoChanged();
 }
 
 void Controller::setCurrentChatJid(const QString &jid)

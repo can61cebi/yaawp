@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
+import org.kde.kirigamiaddons.components as KirigamiComponents
 
 Kirigami.Page {
     id: page
@@ -15,6 +16,18 @@ Kirigami.Page {
 
     title: chatTitle
     padding: 0
+
+    actions: [
+        Kirigami.Action {
+            text: "Group info"
+            icon.name: "documentinfo"
+            visible: page.isGroup
+            onTriggered: {
+                Controller.requestGroupInfo(page.chatJid)
+                groupSheet.open()
+            }
+        }
+    ]
 
     function sendCurrent() {
         const value = input.text.trim()
@@ -125,6 +138,61 @@ Kirigami.Page {
         onAccepted: {
             MessageModel.sendFile(selectedFile, input.text)
             input.clear()
+        }
+    }
+
+    Kirigami.OverlaySheet {
+        id: groupSheet
+        title: (Controller.groupInfo.name !== undefined && Controller.groupInfo.name.length > 0)
+               ? Controller.groupInfo.name : page.chatTitle
+
+        ListView {
+            implicitWidth: Kirigami.Units.gridUnit * 22
+            model: Controller.groupInfo.participants !== undefined ? Controller.groupInfo.participants : []
+
+            header: ColumnLayout {
+                width: ListView.view.width
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    visible: text.length > 0
+                    text: Controller.groupInfo.topic !== undefined ? Controller.groupInfo.topic : ""
+                    wrapMode: Text.WordWrap
+                    opacity: 0.8
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    text: (Controller.groupInfo.participant_count !== undefined ? Controller.groupInfo.participant_count : 0) + " participants"
+                    font.bold: true
+                }
+                Kirigami.Separator { Layout.fillWidth: true }
+            }
+
+            delegate: QQC2.ItemDelegate {
+                width: ListView.view.width
+                required property var modelData
+
+                contentItem: RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
+                    KirigamiComponents.Avatar {
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                        name: modelData.name
+                    }
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        text: modelData.name
+                        elide: Text.ElideRight
+                    }
+                    QQC2.Label {
+                        visible: modelData.is_admin === true
+                        text: "admin"
+                        opacity: 0.6
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    }
+                }
+            }
         }
     }
 

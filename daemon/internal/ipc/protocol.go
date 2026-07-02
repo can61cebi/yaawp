@@ -29,6 +29,7 @@ const (
 	MethodDownloadMedia     = "download_media"
 	MethodSetActiveChat     = "set_active_chat"
 	MethodEditMessage       = "edit_message"
+	MethodGroupInfo         = "group_info"
 )
 
 // Event names (daemon to GUI).
@@ -178,6 +179,11 @@ type EditMessageParams struct {
 	Text      string `json:"text"`
 }
 
+// GroupInfoParams requests the metadata and participants of a group chat.
+type GroupInfoParams struct {
+	JID string `json:"jid"`
+}
+
 // Backend is implemented by the engine. The IPC server dispatches commands to
 // it and returns a JSON-serialisable result or an error.
 type Backend interface {
@@ -199,4 +205,5 @@ type Backend interface {
 	DownloadMedia(p DownloadMediaParams) (interface{}, error)
 	SetActiveChat(p SetActiveChatParams) (interface{}, error)
 	EditMessage(p EditMessageParams) (interface{}, error)
+	GroupInfo(p GroupInfoParams) (interface{}, error)
 }

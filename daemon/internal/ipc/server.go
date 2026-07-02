@@ -171,6 +171,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p EditMessageParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.EditMessage(p)
+	case MethodGroupInfo:
+		var p GroupInfoParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.GroupInfo(p)
 	default:
 		err = errUnknownMethod
 	}

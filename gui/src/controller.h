@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QVariantMap>
 
 class IpcClient;
 
@@ -17,6 +18,7 @@ class Controller : public QObject
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY connectionStateChanged)
     Q_PROPERTY(QString currentChatJid READ currentChatJid WRITE setCurrentChatJid NOTIFY currentChatChanged)
     Q_PROPERTY(QString currentChatStatus READ currentChatStatus NOTIFY currentChatStatusChanged)
+    Q_PROPERTY(QVariantMap groupInfo READ groupInfo NOTIFY groupInfoChanged)
 
 public:
     explicit Controller(IpcClient *ipc, QObject *parent = nullptr);
@@ -26,18 +28,21 @@ public:
     bool loggedIn() const { return m_connectionState == QStringLiteral("connected"); }
     QString currentChatJid() const { return m_currentChatJid; }
     QString currentChatStatus() const { return m_currentChatStatus; }
+    QVariantMap groupInfo() const { return m_groupInfo; }
     void setCurrentChatJid(const QString &jid);
 
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
     Q_INVOKABLE void openFile(const QString &path) const;
     Q_INVOKABLE void saveScroll(const QString &jid, double contentY);
     Q_INVOKABLE double savedScroll(const QString &jid) const;
+    Q_INVOKABLE void requestGroupInfo(const QString &jid);
 
 Q_SIGNALS:
     void connectionStateChanged();
     void qrCodeChanged();
     void currentChatChanged();
     void currentChatStatusChanged();
+    void groupInfoChanged();
 
 private Q_SLOTS:
     void onQrReceived(const QString &code);
@@ -46,6 +51,7 @@ private Q_SLOTS:
     void onEvent(const QString &event, const QJsonObject &data);
     void onChatPresence(const QString &chatJid, const QString &senderJid, const QString &state);
     void onPresence(const QString &jid, const QString &state, qint64 lastSeen);
+    void onGroupInfoReceived(const QJsonObject &info);
 
 private:
     void updateStatus();
@@ -59,4 +65,5 @@ private:
     bool m_online = false;
     qint64 m_lastSeen = 0;
     QHash<QString, double> m_scroll; // chat jid -> saved content y offset
+    QVariantMap m_groupInfo;
 };

@@ -178,6 +178,8 @@ void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &res
         Q_EMIT chatsReceived(result.toArray());
     } else if (method == QStringLiteral("list_messages")) {
         Q_EMIT messagesReceived(result.toArray());
+    } else if (method == QStringLiteral("group_info")) {
+        Q_EMIT groupInfoReceived(result.toObject());
     }
 }
 
@@ -282,6 +284,13 @@ void IpcClient::editMessage(const QString &chatJid, const QString &id, const QSt
     p.insert(QStringLiteral("message_id"), id);
     p.insert(QStringLiteral("text"), text);
     send(QStringLiteral("edit_message"), p);
+}
+
+void IpcClient::requestGroupInfo(const QString &jid)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    send(QStringLiteral("group_info"), p);
 }
 
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)
