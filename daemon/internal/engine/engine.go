@@ -437,13 +437,13 @@ func (e *Engine) maybeDownloadMedia(chatJID, id string, m *waE2E.Message) {
 		return
 	}
 	if img := m.GetImageMessage(); img != nil {
-		e.downloadMediaAsync(chatJID, id, img, extFromMime(img.GetMimetype(), ".jpg"))
+		e.downloadMediaAsync(chatJID, id, img, sanitizeID(id)+extFromMime(img.GetMimetype(), ".jpg"))
 	} else if st := m.GetStickerMessage(); st != nil {
-		e.downloadMediaAsync(chatJID, id, st, ".webp")
+		e.downloadMediaAsync(chatJID, id, st, sanitizeID(id)+".webp")
 	}
 }
 
-func (e *Engine) downloadMediaAsync(chatJID, id string, media whatsmeow.DownloadableMessage, ext string) {
+func (e *Engine) downloadMediaAsync(chatJID, id string, media whatsmeow.DownloadableMessage, filename string) {
 	go func() {
 		data, err := e.client.Download(e.ctx, media)
 		if err != nil {
@@ -455,7 +455,7 @@ func (e *Engine) downloadMediaAsync(chatJID, id string, media whatsmeow.Download
 			log.Printf("media dir: %v", err)
 			return
 		}
-		path := filepath.Join(dir, sanitizeID(id)+ext)
+		path := filepath.Join(dir, filename)
 		if err := os.WriteFile(path, data, 0o600); err != nil {
 			log.Printf("write media %s: %v", id, err)
 			return
@@ -469,6 +469,67 @@ func (e *Engine) downloadMediaAsync(chatJID, id string, media whatsmeow.Download
 	}()
 }
 
+// DownloadMedia fetches a message's attachment on demand from the stored
+// protobuf, caches it, and notifies clients with the local path so the GUI can
+// open it. Only messages received after media info was stored can be fetched.
+func (e *Engine) DownloadMedia(p ipc.DownloadMediaParams) (interface{}, error) {
+	raw, typ, err := e.db.MediaInfo(p.ChatJID, p.MessageID)
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("no downloadable media stored for %s", p.MessageID)
+	}
+	var media whatsmeow.DownloadableMessage
+	var filename string
+	switch typ {
+	case "image":
+		m := &waE2E.ImageMessage{}
+		if err := proto.Unmarshal(raw, m); err != nil {
+			return nil, err
+		}
+		media, filename = m, sanitizeID(p.MessageID)+extFromMime(m.GetMimetype(), ".jpg")
+	case "sticker":
+		m := &waE2E.StickerMessage{}
+		if err := proto.Unmarshal(raw, m); err != nil {
+			return nil, err
+		}
+		media, filename = m, sanitizeID(p.MessageID)+".webp"
+	case "video":
+		m := &waE2E.VideoMessage{}
+		if err := proto.Unmarshal(raw, m); err != nil {
+			return nil, err
+		}
+		media, filename = m, sanitizeID(p.MessageID)+extFromMime(m.GetMimetype(), ".mp4")
+	case "audio":
+		m := &waE2E.AudioMessage{}
+		if err := proto.Unmarshal(raw, m); err != nil {
+			return nil, err
+		}
+		media, filename = m, sanitizeID(p.MessageID)+extFromMime(m.GetMimetype(), ".ogg")
+	case "document":
+		m := &waE2E.DocumentMessage{}
+		if err := proto.Unmarshal(raw, m); err != nil {
+			return nil, err
+		}
+		media, filename = m, documentFilename(p.MessageID, m)
+	default:
+		return nil, fmt.Errorf("cannot download media of type %q", typ)
+	}
+	e.downloadMediaAsync(p.ChatJID, p.MessageID, media, filename)
+	return map[string]any{"ok": true}, nil
+}
+
+// documentFilename builds a safe cache filename that keeps the document's
+// extension so the system handler opens it with the right application.
+func documentFilename(id string, m *waE2E.DocumentMessage) string {
+	ext := filepath.Ext(m.GetFileName())
+	if ext == "" {
+		ext = extFromMime(m.GetMimetype(), ".bin")
+	}
+	return sanitizeID(id) + ext
+}
+
 func extFromMime(mime, def string) string {
 	switch {
 	case strings.Contains(mime, "png"):
@@ -479,6 +540,24 @@ func extFromMime(mime, def string) string {
 		return ".gif"
 	case strings.Contains(mime, "jpeg"), strings.Contains(mime, "jpg"):
 		return ".jpg"
+	case strings.Contains(mime, "mp4"):
+		return ".mp4"
+	case strings.Contains(mime, "webm"):
+		return ".webm"
+	case strings.Contains(mime, "3gpp"):
+		return ".3gp"
+	case strings.Contains(mime, "quicktime"):
+		return ".mov"
+	case strings.Contains(mime, "ogg"):
+		return ".ogg"
+	case strings.Contains(mime, "mpeg"), strings.Contains(mime, "mp3"):
+		return ".mp3"
+	case strings.Contains(mime, "wav"):
+		return ".wav"
+	case strings.Contains(mime, "aac"):
+		return ".aac"
+	case strings.Contains(mime, "pdf"):
+		return ".pdf"
 	}
 	return def
 }

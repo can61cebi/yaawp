@@ -26,6 +26,7 @@ const (
 	MethodDeleteMessage     = "delete_message"
 	MethodSendReaction      = "send_reaction"
 	MethodSendMedia         = "send_media"
+	MethodDownloadMedia     = "download_media"
 )
 
 // Event names (daemon to GUI).
@@ -144,12 +145,19 @@ type Message struct {
 	MediaPath   string `json:"media_path,omitempty"` // local cache path for downloaded media
 	MediaWidth  int    `json:"media_w,omitempty"`    // media pixel dimensions, to reserve layout space
 	MediaHeight int    `json:"media_h,omitempty"`
+	RawMedia    []byte `json:"-"` // marshaled protobuf of the media submessage, for on demand download
 
 	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
 
 	QuotedID     string `json:"quoted_id,omitempty"`
 	QuotedSender string `json:"quoted_sender,omitempty"`
 	QuotedText   string `json:"quoted_text,omitempty"`
+}
+
+// DownloadMediaParams requests an on demand download of a message's attachment.
+type DownloadMediaParams struct {
+	ChatJID   string `json:"chat_jid"`
+	MessageID string `json:"message_id"`
 }
 
 // Backend is implemented by the engine. The IPC server dispatches commands to
@@ -170,4 +178,5 @@ type Backend interface {
 	DeleteMessage(p DeleteMessageParams) (interface{}, error)
 	SendReaction(p SendReactionParams) (interface{}, error)
 	SendMedia(p SendMediaParams) (interface{}, error)
+	DownloadMedia(p DownloadMediaParams) (interface{}, error)
 }

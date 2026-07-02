@@ -33,6 +33,7 @@ public:
     Q_INVOKABLE void deleteMessage(const QString &chatJid, const QString &id);
     Q_INVOKABLE void sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji);
     Q_INVOKABLE void sendMedia(const QString &chatJid, const QString &filePath, const QString &caption);
+    Q_INVOKABLE void downloadMedia(const QString &chatJid, const QString &id);
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:

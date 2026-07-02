@@ -253,6 +253,14 @@ void IpcClient::deleteMessage(const QString &chatJid, const QString &id)
     send(QStringLiteral("delete_message"), p);
 }
 
+void IpcClient::downloadMedia(const QString &chatJid, const QString &id)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("message_id"), id);
+    send(QStringLiteral("download_media"), p);
+}
+
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)
 {
     QJsonObject p;

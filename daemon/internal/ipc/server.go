@@ -159,6 +159,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p SendMediaParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.SendMedia(p)
+	case MethodDownloadMedia:
+		var p DownloadMediaParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.DownloadMedia(p)
 	default:
 		err = errUnknownMethod
 	}

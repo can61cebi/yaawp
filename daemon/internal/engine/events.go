@@ -12,6 +12,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waWeb"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
+	"google.golang.org/protobuf/proto"
 )
 
 // handleEvent translates whatsmeow events into IPC events, persists what is
@@ -183,6 +184,7 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 	}
 	qid, qsender, qtext := e.extractQuote(evt.Message)
 	mw, mh := mediaDimensions(evt.Message)
+	raw := rawMedia(evt.Message)
 	return ipc.Message{
 		ID:           evt.Info.ID,
 		ChatJID:      e.canonicalJID(evt.Info.Chat.String()),
@@ -198,6 +200,7 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 		QuotedText:   qtext,
 		MediaWidth:   mw,
 		MediaHeight:  mh,
+		RawMedia:     raw,
 	}, true
 }
 
@@ -235,6 +238,7 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 	}
 	qid, qsender, qtext := e.extractQuote(wmi.GetMessage())
 	mw, mh := mediaDimensions(wmi.GetMessage())
+	raw := rawMedia(wmi.GetMessage())
 	return ipc.Message{
 		ID:           key.GetID(),
 		ChatJID:      chatJID,
@@ -249,6 +253,7 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 		QuotedText:   qtext,
 		MediaWidth:   mw,
 		MediaHeight:  mh,
+		RawMedia:     raw,
 	}, true
 }
 
@@ -268,6 +273,35 @@ func mediaDimensions(m *waE2E.Message) (int, int) {
 		return int(vid.GetWidth()), int(vid.GetHeight())
 	}
 	return 0, 0
+}
+
+// rawMedia marshals the downloadable submessage of a message so it can be stored
+// and later used to fetch the attachment on demand. It returns nil for messages
+// without an attachment.
+func rawMedia(m *waE2E.Message) []byte {
+	if m == nil {
+		return nil
+	}
+	var sub proto.Message
+	switch {
+	case m.GetImageMessage() != nil:
+		sub = m.GetImageMessage()
+	case m.GetVideoMessage() != nil:
+		sub = m.GetVideoMessage()
+	case m.GetAudioMessage() != nil:
+		sub = m.GetAudioMessage()
+	case m.GetDocumentMessage() != nil:
+		sub = m.GetDocumentMessage()
+	case m.GetStickerMessage() != nil:
+		sub = m.GetStickerMessage()
+	default:
+		return nil
+	}
+	data, err := proto.Marshal(sub)
+	if err != nil {
+		return nil
+	}
+	return data
 }
 
 // senderFromKey derives the sender JID from a message key. Group messages carry

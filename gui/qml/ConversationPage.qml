@@ -94,6 +94,9 @@ Kirigami.Page {
         function onChatLoaded() {
             Qt.callLater(page.positionInitially)
         }
+        function onOpenFileRequested(path) {
+            Controller.openFile(path)
+        }
     }
 
     FileDialog {
@@ -274,6 +277,8 @@ Kirigami.Page {
                                 w = Math.max(w, Math.min(senderLabel.implicitWidth, maxContent))
                             if (hasMedia)
                                 w = Math.max(w, mediaImage.width)
+                            if (fileChip.isFile)
+                                w = Math.max(w, fileChip.width)
                             if (row.reactions.length > 0)
                                 w = Math.max(w, reactionsLabel.implicitWidth)
                             if (row.quotedText.length > 0)
@@ -385,10 +390,61 @@ Kirigami.Page {
                                 }
                             }
 
+                            // Attachment chip for media fetched on demand: video,
+                            // audio and documents. Tapping downloads then opens it.
+                            Rectangle {
+                                id: fileChip
+                                readonly property bool isFile: row.type === "video" || row.type === "audio" || row.type === "document"
+                                readonly property bool ready: row.mediaPath.length > 0
+                                visible: fileChip.isFile
+                                width: visible ? fileRow.width + Kirigami.Units.smallSpacing * 3 : 0
+                                height: visible ? fileRow.implicitHeight + Kirigami.Units.smallSpacing * 2 : 0
+                                radius: Kirigami.Units.smallSpacing
+                                color: row.fromMe ? Qt.rgba(0, 0, 0, 0.18) : Qt.rgba(0, 0, 0, 0.10)
+
+                                Row {
+                                    id: fileRow
+                                    x: Kirigami.Units.smallSpacing
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    Kirigami.Icon {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: Kirigami.Units.iconSizes.medium
+                                        height: Kirigami.Units.iconSizes.medium
+                                        source: row.type === "video" ? "media-playback-start"
+                                              : row.type === "audio" ? "audio-volume-high"
+                                              : "text-x-generic"
+                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    }
+                                    Column {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 0
+                                        QQC2.Label {
+                                            width: Math.min(implicitWidth, bubble.maxContent - Kirigami.Units.iconSizes.medium - Kirigami.Units.largeSpacing)
+                                            text: row.text.length > 0 ? row.text
+                                                : (row.type === "video" ? "Video" : row.type === "audio" ? "Voice message" : "Document")
+                                            elide: Text.ElideRight
+                                            color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        }
+                                        QQC2.Label {
+                                            text: fileChip.ready ? "Tap to open" : "Tap to download"
+                                            font: Kirigami.Theme.smallFont
+                                            opacity: 0.7
+                                            color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        }
+                                    }
+                                }
+
+                                TapHandler {
+                                    onTapped: MessageModel.openMedia(row.messageId)
+                                }
+                            }
+
                             QQC2.Label {
                                 id: textLabel
                                 readonly property bool revoked: row.type === "revoked"
-                                visible: row.text.length > 0 || revoked
+                                visible: (row.text.length > 0 || revoked) && !fileChip.isFile
                                 width: parent.width
                                 text: revoked ? "This message was deleted" : row.text
                                 font.italic: revoked

@@ -105,6 +105,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
 
 void MessageModel::setChat(const QString &jid)
 {
+    m_pendingOpen.clear();
     if (jid.isEmpty()) {
         beginResetModel();
         m_chatJid.clear();
@@ -195,6 +196,22 @@ int MessageModel::indexOfMessage(const QString &id) const
         }
     }
     return -1;
+}
+
+void MessageModel::openMedia(const QString &id)
+{
+    for (const MessageItem &m : m_messages) {
+        if (m.id == id) {
+            if (!m.mediaPath.isEmpty()) {
+                Q_EMIT openFileRequested(m.mediaPath);
+            } else {
+                // Fetch on demand; onMessageMedia opens it once it arrives.
+                m_pendingOpen.insert(id);
+                m_ipc->downloadMedia(m_chatJid, id);
+            }
+            return;
+        }
+    }
 }
 
 void MessageModel::deleteMessage(const QString &id)
@@ -355,6 +372,9 @@ void MessageModel::onMessageMedia(const QString &chatJid, const QString &id, con
             m_messages[i].mediaPath = mediaPath;
             const QModelIndex idx = index(i);
             Q_EMIT dataChanged(idx, idx, {MediaPathRole});
+            if (m_pendingOpen.remove(id) && !mediaPath.isEmpty()) {
+                Q_EMIT openFileRequested(mediaPath);
+            }
             return;
         }
     }

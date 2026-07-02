@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QMap>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -72,6 +73,8 @@ public:
     Q_INVOKABLE void clearReply();
     Q_INVOKABLE QString messageIdAt(int index) const;
     Q_INVOKABLE int indexOfMessage(const QString &id) const;
+    // Open a message's attachment, downloading it on demand when not yet cached.
+    Q_INVOKABLE void openMedia(const QString &id);
 
     QString replyText() const { return m_replyText; }
     QString replySenderName() const { return m_replySenderName; }
@@ -82,6 +85,8 @@ Q_SIGNALS:
     // Emitted when a chat's messages have been loaded and the model rebuilt, so
     // the view can restore its scroll position for the new chat.
     void chatLoaded();
+    // Ask the GUI to open a ready local attachment with the system handler.
+    void openFileRequested(const QString &path);
 
 private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);
@@ -100,6 +105,7 @@ private:
 
     IpcClient *m_ipc;
     QString m_chatJid;
+    QSet<QString> m_pendingOpen; // message ids to open once their download lands
     QList<MessageItem> m_messages;
     QString m_replyId;
     QString m_replySender;

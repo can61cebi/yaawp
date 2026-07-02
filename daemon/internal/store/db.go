@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS messages (
     media_path TEXT NOT NULL DEFAULT '',
     media_w    INTEGER NOT NULL DEFAULT 0,
     media_h    INTEGER NOT NULL DEFAULT 0,
+    raw_media  BLOB,
     quoted_id     TEXT NOT NULL DEFAULT '',
     quoted_sender TEXT NOT NULL DEFAULT '',
     quoted_text   TEXT NOT NULL DEFAULT '',
@@ -53,8 +54,8 @@ CREATE TABLE IF NOT EXISTS reactions (
 `
 
 const insertMessageSQL = `INSERT OR IGNORE INTO messages
-    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, quoted_id, quoted_sender, quoted_text)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, raw_media, quoted_id, quoted_sender, quoted_text)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 // updateChatSQL advances a chat summary only when the incoming message is at
 // least as recent as the stored one.
@@ -94,6 +95,7 @@ func (d *DB) migrate() {
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_text TEXT NOT NULL DEFAULT ''`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_w INTEGER NOT NULL DEFAULT 0`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_h INTEGER NOT NULL DEFAULT 0`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN raw_media BLOB`)
 }
 
 // Close releases the database handle.
@@ -129,7 +131,7 @@ func (d *DB) PutMessages(msgs []ipc.Message) error {
 	defer func() { _ = upChat.Close() }()
 
 	for _, m := range msgs {
-		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.MediaWidth, m.MediaHeight, m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
+		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.MediaWidth, m.MediaHeight, m.RawMedia, m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
 			return err
 		}
 		if _, err := upChat.Exec(m.ChatJID, m.Timestamp, m.Text); err != nil {
@@ -212,6 +214,14 @@ func (d *DB) UpdateMediaPath(chatJID, id, path string) error {
 func (d *DB) UpdateMediaDimensions(chatJID, id string, w, h int) error {
 	_, err := d.sql.Exec(`UPDATE messages SET media_w = ?, media_h = ? WHERE chat_jid = ? AND id = ?`, w, h, chatJID, id)
 	return err
+}
+
+// MediaInfo returns the message type and the stored protobuf submessage needed
+// to download the attachment on demand. raw is nil when nothing was stored.
+func (d *DB) MediaInfo(chatJID, id string) (raw []byte, typ string, err error) {
+	row := d.sql.QueryRow(`SELECT type, raw_media FROM messages WHERE chat_jid = ? AND id = ?`, chatJID, id)
+	err = row.Scan(&typ, &raw)
+	return raw, typ, err
 }
 
 // SetChatName sets the display name and group flag for a chat.
