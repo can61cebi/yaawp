@@ -465,14 +465,15 @@ Kirigami.Page {
         anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
         anchors.bottomMargin: Kirigami.Units.largeSpacing
         focusPolicy: Qt.NoFocus
-        // In this bottom-up list the newest message sits at the minimum contentY
-        // (originY), so the distance scrolled up is contentY - originY. Show only
-        // after scrolling up about half a screen.
+        // In this bottom-up list originY is the oldest (top) and the newest sits
+        // at the maximum contentY (originY + contentHeight - height). Show the
+        // button only after scrolling up about half a screen from the newest.
+        readonly property real bottomY: messages.originY + messages.contentHeight - messages.height
         visible: messages.contentHeight > messages.height
-                 && (messages.contentY - messages.originY) > messages.height * 0.5
+                 && (bottomY - messages.contentY) > messages.height * 0.5
         icon.name: "go-down-symbolic"
         onClicked: {
-            messages.contentY = messages.originY
+            messages.contentY = bottomY
             messages.returnToBounds()
         }
     }
