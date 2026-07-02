@@ -5,6 +5,7 @@ ChatListModel::ChatListModel(IpcClient *ipc, QObject *parent)
     : QAbstractListModel(parent)
     , m_ipc(ipc)
 {
+    connect(ipc, &IpcClient::chatsReceived, this, &ChatListModel::onChatsReceived);
     connect(ipc, &IpcClient::messageReceived, this, &ChatListModel::onMessageReceived);
 }
 
@@ -47,6 +48,23 @@ QHash<int, QByteArray> ChatListModel::roleNames() const
         {LastTsRole, "lastTs"},
         {UnreadRole, "unread"},
     };
+}
+
+void ChatListModel::onChatsReceived(const QJsonArray &chats)
+{
+    beginResetModel();
+    m_chats.clear();
+    for (const QJsonValue &value : chats) {
+        const QJsonObject o = value.toObject();
+        ChatItem item;
+        item.jid = o.value(QStringLiteral("jid")).toString();
+        item.name = o.value(QStringLiteral("name")).toString();
+        item.lastPreview = o.value(QStringLiteral("last_message_preview")).toString();
+        item.lastTs = static_cast<qint64>(o.value(QStringLiteral("last_message_ts")).toDouble());
+        item.unread = o.value(QStringLiteral("unread_count")).toInt();
+        m_chats.append(item);
+    }
+    endResetModel();
 }
 
 int ChatListModel::indexOfJid(const QString &jid) const

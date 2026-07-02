@@ -20,16 +20,18 @@ import (
 )
 
 // Engine holds the WhatsApp session and forwards protocol events to the GUI
-// through the installed sink.
+// through the installed sink. It persists chats and messages in a local store.
 type Engine struct {
 	ctx    context.Context
 	client *whatsmeow.Client
+	db     *store.DB
 
 	sinkMu sync.RWMutex
 	sink   func(ipc.Event)
 }
 
-// New opens the session store, creates the client and attaches the event handler.
+// New opens the session and application stores, creates the client and attaches
+// the event handler.
 func New(ctx context.Context) (*Engine, error) {
 	dbPath, err := store.DatabasePath()
 	if err != nil {
@@ -39,15 +41,21 @@ func New(ctx context.Context) (*Engine, error) {
 	dsn := fmt.Sprintf("file:%s?_foreign_keys=on", dbPath)
 	container, err := sqlstore.New(ctx, "sqlite3", dsn, dbLog)
 	if err != nil {
-		return nil, fmt.Errorf("open store: %w", err)
+		return nil, fmt.Errorf("open session store: %w", err)
 	}
 	device, err := container.GetFirstDevice(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get device: %w", err)
 	}
+
+	appDB, err := store.OpenDB()
+	if err != nil {
+		return nil, fmt.Errorf("open app store: %w", err)
+	}
+
 	client := whatsmeow.NewClient(device, waLog.Stdout("Client", "INFO", true))
 
-	e := &Engine{ctx: ctx, client: client}
+	e := &Engine{ctx: ctx, client: client, db: appDB}
 	client.AddEventHandler(e.handleEvent)
 	return e, nil
 }
@@ -101,8 +109,13 @@ func (e *Engine) beginQRLogin() error {
 	return nil
 }
 
-// Disconnect closes the connection cleanly.
-func (e *Engine) Disconnect() { e.client.Disconnect() }
+// Disconnect closes the connection and the application store cleanly.
+func (e *Engine) Disconnect() {
+	e.client.Disconnect()
+	if e.db != nil {
+		_ = e.db.Close()
+	}
+}
 
 // ---- ipc.Backend implementation ----
 
@@ -137,15 +150,12 @@ func (e *Engine) Logout() (interface{}, error) {
 	return map[string]any{"ok": true}, nil
 }
 
-// ListChats is a placeholder. TODO: persist chats from history sync and
-// incoming messages into local SQLite, then return them here.
 func (e *Engine) ListChats() (interface{}, error) {
-	return []ipc.Chat{}, nil
+	return e.db.ListChats()
 }
 
-// ListMessages is a placeholder. TODO: read from the local message store.
 func (e *Engine) ListMessages(p ipc.ListMessagesParams) (interface{}, error) {
-	return []ipc.Message{}, nil
+	return e.db.ListMessages(p.ChatJID, p.Limit)
 }
 
 func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
@@ -158,6 +168,15 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Persist the outgoing message so it survives restarts.
+	_ = e.db.PutMessage(ipc.Message{
+		ID:        resp.ID,
+		ChatJID:   p.ChatJID,
+		FromMe:    true,
+		Timestamp: resp.Timestamp.Unix(),
+		Type:      "text",
+		Text:      p.Text,
+	})
 	return map[string]any{"message_id": resp.ID, "timestamp": resp.Timestamp.Unix()}, nil
 }
 

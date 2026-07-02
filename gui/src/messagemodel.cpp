@@ -5,6 +5,7 @@ MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
     : QAbstractListModel(parent)
     , m_ipc(ipc)
 {
+    connect(ipc, &IpcClient::messagesReceived, this, &MessageModel::onMessagesReceived);
     connect(ipc, &IpcClient::messageReceived, this, &MessageModel::onMessageReceived);
 }
 
@@ -74,6 +75,34 @@ void MessageModel::sendText(const QString &text)
     append(item);
 }
 
+MessageItem MessageModel::fromJson(const QJsonObject &o) const
+{
+    MessageItem item;
+    item.id = o.value(QStringLiteral("id")).toString();
+    item.senderJid = o.value(QStringLiteral("sender_jid")).toString();
+    item.fromMe = o.value(QStringLiteral("from_me")).toBool();
+    item.timestamp = static_cast<qint64>(o.value(QStringLiteral("timestamp")).toDouble());
+    item.text = o.value(QStringLiteral("text")).toString();
+    return item;
+}
+
+void MessageModel::onMessagesReceived(const QJsonArray &messages)
+{
+    // Ignore a history batch that does not belong to the open chat.
+    if (!messages.isEmpty()) {
+        const QString jid = messages.first().toObject().value(QStringLiteral("chat_jid")).toString();
+        if (jid != m_chatJid) {
+            return;
+        }
+    }
+    beginResetModel();
+    m_messages.clear();
+    for (const QJsonValue &value : messages) {
+        m_messages.append(fromJson(value.toObject()));
+    }
+    endResetModel();
+}
+
 void MessageModel::append(const MessageItem &item)
 {
     const int row = static_cast<int>(m_messages.size());
@@ -87,11 +116,5 @@ void MessageModel::onMessageReceived(const QJsonObject &message)
     if (message.value(QStringLiteral("chat_jid")).toString() != m_chatJid) {
         return;
     }
-    MessageItem item;
-    item.id = message.value(QStringLiteral("id")).toString();
-    item.senderJid = message.value(QStringLiteral("sender_jid")).toString();
-    item.fromMe = message.value(QStringLiteral("from_me")).toBool();
-    item.timestamp = static_cast<qint64>(message.value(QStringLiteral("timestamp")).toDouble());
-    item.text = message.value(QStringLiteral("text")).toString();
-    append(item);
+    append(fromJson(message));
 }

@@ -1,12 +1,15 @@
 package engine
 
 import (
+	"log"
+
 	"cebi.tr/yaawp/internal/ipc"
 
 	"go.mau.fi/whatsmeow/types/events"
 )
 
-// handleEvent translates whatsmeow events into IPC events and forwards them.
+// handleEvent translates whatsmeow events into IPC events, persists what is
+// relevant, and forwards them to connected clients.
 func (e *Engine) handleEvent(rawEvt interface{}) {
 	switch evt := rawEvt.(type) {
 	case *events.Connected:
@@ -21,7 +24,11 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 			"push_name": e.client.Store.PushName,
 		}))
 	case *events.Message:
-		e.emit(ipc.NewEvent(ipc.EventMessage, messageToIPC(evt)))
+		msg := messageToIPC(evt)
+		if err := e.db.PutMessage(msg); err != nil {
+			log.Printf("persist message: %v", err)
+		}
+		e.emit(ipc.NewEvent(ipc.EventMessage, msg))
 	case *events.Receipt:
 		e.emit(ipc.NewEvent(ipc.EventReceipt, map[string]any{
 			"chat_jid":    evt.Chat.String(),

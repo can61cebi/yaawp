@@ -67,14 +67,18 @@ void IpcClient::handleLine(const QByteArray &line)
     const QJsonObject obj = doc.object();
     const QString type = obj.value(QStringLiteral("type")).toString();
 
-    if (type != QStringLiteral("event")) {
-        // Responses (type "resp") are not correlated in this skeleton yet.
-        return;
+    if (type == QStringLiteral("event")) {
+        handleEvent(obj.value(QStringLiteral("event")).toString(),
+                    obj.value(QStringLiteral("data")).toObject());
+    } else if (type == QStringLiteral("resp")) {
+        handleResponse(obj.value(QStringLiteral("id")).toString(),
+                       obj.value(QStringLiteral("ok")).toBool(),
+                       obj.value(QStringLiteral("result")));
     }
+}
 
-    const QString event = obj.value(QStringLiteral("event")).toString();
-    const QJsonObject data = obj.value(QStringLiteral("data")).toObject();
-
+void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
+{
     if (event == QStringLiteral("qr")) {
         Q_EMIT qrReceived(data.value(QStringLiteral("code")).toString());
     } else if (event == QStringLiteral("pair_success")) {
@@ -87,8 +91,20 @@ void IpcClient::handleLine(const QByteArray &line)
     } else if (event == QStringLiteral("receipt")) {
         Q_EMIT receiptReceived(data);
     }
-
     Q_EMIT eventReceived(event, data);
+}
+
+void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &result)
+{
+    const QString method = m_pending.take(id);
+    if (!ok) {
+        return;
+    }
+    if (method == QStringLiteral("list_chats")) {
+        Q_EMIT chatsReceived(result.toArray());
+    } else if (method == QStringLiteral("list_messages")) {
+        Q_EMIT messagesReceived(result.toArray());
+    }
 }
 
 void IpcClient::send(const QString &method, const QJsonObject &params)
@@ -96,9 +112,12 @@ void IpcClient::send(const QString &method, const QJsonObject &params)
     if (m_socket.state() != QLocalSocket::ConnectedState) {
         return;
     }
+    const QString id = QString::number(m_nextId++);
+    m_pending.insert(id, method);
+
     QJsonObject cmd;
     cmd.insert(QStringLiteral("type"), QStringLiteral("cmd"));
-    cmd.insert(QStringLiteral("id"), QString::number(m_nextId++));
+    cmd.insert(QStringLiteral("id"), id);
     cmd.insert(QStringLiteral("method"), method);
     if (!params.isEmpty()) {
         cmd.insert(QStringLiteral("params"), params);

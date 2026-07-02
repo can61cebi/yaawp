@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
 #include <QString>
@@ -15,9 +16,8 @@ struct ChatItem {
     int unread = 0;
 };
 
-// ChatListModel holds the list of conversations. In this skeleton it is
-// populated from incoming message events; later it will be backed by the
-// daemon list_chats response and a local store.
+// ChatListModel holds the list of conversations. It is filled from the daemon
+// list_chats response and kept current by incoming message events.
 class ChatListModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -38,6 +38,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
 private Q_SLOTS:
+    void onChatsReceived(const QJsonArray &chats);
     void onMessageReceived(const QJsonObject &message);
 
 private:

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QByteArray>
+#include <QHash>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QLocalSocket>
 #include <QObject>
@@ -32,6 +34,8 @@ Q_SIGNALS:
     void connectionStateChanged(const QString &state);
     void messageReceived(const QJsonObject &message);
     void receiptReceived(const QJsonObject &receipt);
+    void chatsReceived(const QJsonArray &chats);
+    void messagesReceived(const QJsonArray &messages);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:
@@ -43,8 +47,11 @@ private:
     QString socketPath() const;
     void send(const QString &method, const QJsonObject &params = {});
     void handleLine(const QByteArray &line);
+    void handleEvent(const QString &event, const QJsonObject &data);
+    void handleResponse(const QString &id, bool ok, const QJsonValue &result);
 
     QLocalSocket m_socket;
     QByteArray m_buffer;
     quint64 m_nextId = 1;
+    QHash<QString, QString> m_pending; // request id -> method
 };

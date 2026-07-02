@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
 #include <QString>
@@ -15,7 +16,8 @@ struct MessageItem {
     QString text;
 };
 
-// MessageModel holds the messages of the currently open chat.
+// MessageModel holds the messages of the currently open chat. History is loaded
+// from the daemon list_messages response; new messages arrive as events.
 class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -39,10 +41,12 @@ public:
     Q_INVOKABLE void sendText(const QString &text);
 
 private Q_SLOTS:
+    void onMessagesReceived(const QJsonArray &messages);
     void onMessageReceived(const QJsonObject &message);
 
 private:
     void append(const MessageItem &item);
+    MessageItem fromJson(const QJsonObject &o) const;
 
     IpcClient *m_ipc;
     QString m_chatJid;
