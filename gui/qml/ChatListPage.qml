@@ -9,6 +9,18 @@ Kirigami.Page {
     title: "Chats"
     padding: 0
 
+    function chatTime(ts) {
+        if (!ts || ts <= 0) {
+            return ""
+        }
+        const d = new Date(ts * 1000)
+        const now = new Date()
+        if (d.toDateString() === now.toDateString()) {
+            return Qt.formatDateTime(d, "hh:mm")
+        }
+        return Qt.formatDateTime(d, "dd MMM")
+    }
+
     actions: [
         Kirigami.Action {
             text: "Refresh"
@@ -123,6 +135,7 @@ Kirigami.Page {
                 required property bool pinned
                 required property bool muted
                 required property string avatarPath
+                required property var lastTs
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.largeSpacing
@@ -137,11 +150,19 @@ Kirigami.Page {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 0
-                        QQC2.Label {
+                        RowLayout {
                             Layout.fillWidth: true
-                            text: item.name
-                            font.bold: true
-                            elide: Text.ElideRight
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                text: item.name
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
+                            QQC2.Label {
+                                text: page.chatTime(item.lastTs)
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                opacity: 0.6
+                            }
                         }
                         QQC2.Label {
                             Layout.fillWidth: true
