@@ -184,11 +184,15 @@ Kirigami.Page {
     ListView {
         id: messages
         anchors.fill: parent
+        clip: true
         model: MessageModel
         spacing: Kirigami.Units.smallSpacing
         topMargin: Kirigami.Units.smallSpacing
-        bottomMargin: Kirigami.Units.smallSpacing
+        bottomMargin: Kirigami.Units.gridUnit
         cacheBuffer: 800
+        // Stop exactly at the content edges, like Kirigami's own lists, so the
+        // view cannot be dragged past the last message and does not bounce back.
+        boundsBehavior: Flickable.StopAtBounds
 
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
 
@@ -445,10 +449,10 @@ Kirigami.Page {
         anchors.bottom: parent.bottom
         anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
         anchors.bottomMargin: Kirigami.Units.largeSpacing
-        // Only show when meaningfully scrolled up, so it never covers the
-        // newest message while at the bottom.
-        visible: messages.contentHeight > messages.height + 1
-                 && (messages.contentHeight - messages.contentY - messages.height) > Kirigami.Units.gridUnit * 3
+        // Only show after scrolling up about half a screen, so it never covers
+        // the newest messages near the bottom.
+        visible: messages.contentHeight > messages.height
+                 && (messages.contentHeight - messages.contentY - messages.height) > messages.height * 0.5
         icon.name: "go-down-symbolic"
         onClicked: {
             messages.positionViewAtEnd()

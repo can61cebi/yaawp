@@ -43,59 +43,60 @@ Kirigami.Page {
             type: Kirigami.MessageType.Information
         }
 
-        QQC2.ScrollView {
+        ListView {
+            id: list
             Layout.fillWidth: true
             Layout.fillHeight: true
+            clip: true
+            model: ChatFilterModel
+            boundsBehavior: Flickable.StopAtBounds
 
-            ListView {
-                id: list
-                model: ChatFilterModel
+            QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
 
-                delegate: QQC2.ItemDelegate {
-                    id: item
-                    width: ListView.view.width
+            delegate: QQC2.ItemDelegate {
+                id: item
+                width: ListView.view.width
 
-                    required property string jid
-                    required property string name
-                    required property string lastPreview
+                required property string jid
+                required property string name
+                required property string lastPreview
 
-                    contentItem: RowLayout {
-                        spacing: Kirigami.Units.largeSpacing
+                contentItem: RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
 
-                        KirigamiComponents.Avatar {
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
-                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
-                            name: item.name
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-                            QQC2.Label {
-                                Layout.fillWidth: true
-                                text: item.name
-                                font.bold: true
-                                elide: Text.ElideRight
-                            }
-                            QQC2.Label {
-                                Layout.fillWidth: true
-                                text: item.lastPreview
-                                opacity: 0.7
-                                elide: Text.ElideRight
-                            }
-                        }
+                    KirigamiComponents.Avatar {
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                        name: item.name
                     }
 
-                    onClicked: applicationWindow().showConversation(item.jid, item.name)
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: item.name
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: item.lastPreview
+                            opacity: 0.7
+                            elide: Text.ElideRight
+                        }
+                    }
                 }
 
-                Kirigami.PlaceholderMessage {
-                    anchors.centerIn: parent
-                    width: parent.width - Kirigami.Units.gridUnit * 4
-                    visible: list.count === 0
-                    text: searchField.text.length > 0 ? "No matches" : "No chats yet"
-                    explanation: searchField.text.length > 0 ? "" : "New messages will appear here once you are connected."
-                }
+                onClicked: applicationWindow().showConversation(item.jid, item.name)
+            }
+
+            Kirigami.PlaceholderMessage {
+                anchors.centerIn: parent
+                width: parent.width - Kirigami.Units.gridUnit * 4
+                visible: list.count === 0
+                text: searchField.text.length > 0 ? "No matches" : "No chats yet"
+                explanation: searchField.text.length > 0 ? "" : "New messages will appear here once you are connected."
             }
         }
     }
