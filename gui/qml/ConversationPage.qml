@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
+import QtMultimedia
 import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.components as KirigamiComponents
 
@@ -254,6 +255,25 @@ Kirigami.Page {
         onAccepted: {
             MessageModel.sendFile(selectedFile, input.text)
             input.clear()
+        }
+    }
+
+    CaptureSession {
+        id: captureSession
+        audioInput: AudioInput {}
+        recorder: MediaRecorder {
+            id: audioRecorder
+            quality: MediaRecorder.HighQuality
+            mediaFormat {
+                fileFormat: MediaFormat.Ogg
+                audioCodec: MediaFormat.Opus
+            }
+            onRecorderStateChanged: {
+                if (recorderState === MediaRecorder.StoppedState
+                        && audioRecorder.actualLocation.toString().length > 0) {
+                    MessageModel.sendFile(audioRecorder.actualLocation, "")
+                }
+            }
         }
     }
 
@@ -542,9 +562,22 @@ Kirigami.Page {
                         }
                     }
                 }
+                QQC2.ToolButton {
+                    readonly property bool recording: audioRecorder.recorderState === MediaRecorder.RecordingState
+                    icon.name: recording ? "media-playback-stop-symbolic" : "audio-input-microphone"
+                    onClicked: recording ? audioRecorder.stop() : audioRecorder.record()
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    visible: audioRecorder.recorderState === MediaRecorder.RecordingState
+                    text: "Recording... " + Math.floor(audioRecorder.duration / 1000) + "s"
+                    color: Kirigami.Theme.negativeTextColor
+                    verticalAlignment: Text.AlignVCenter
+                }
                 QQC2.TextField {
                     id: input
                     Layout.fillWidth: true
+                    visible: audioRecorder.recorderState !== MediaRecorder.RecordingState
                     placeholderText: "Type a message"
                     onTextEdited: {
                         if (text.length > 0) {

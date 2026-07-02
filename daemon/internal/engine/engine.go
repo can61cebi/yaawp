@@ -924,6 +924,9 @@ func (e *Engine) SendMedia(p ipc.SendMediaParams) (interface{}, error) {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 	mimeType := http.DetectContentType(data)
+	ext := strings.ToLower(filepath.Ext(p.FilePath))
+	isAudio := strings.HasPrefix(mimeType, "audio/") || mimeType == "application/ogg" ||
+		ext == ".ogg" || ext == ".opus" || ext == ".m4a" || ext == ".mp3" || ext == ".wav" || ext == ".aac"
 
 	var msg *waE2E.Message
 	msgType := "document"
@@ -946,6 +949,32 @@ func (e *Engine) SendMedia(p ipc.SendMediaParams) (interface{}, error) {
 		}
 		msg = &waE2E.Message{ImageMessage: img}
 		msgType = "image"
+	} else if isAudio {
+		up, upErr := e.client.Upload(e.ctx, data, whatsmeow.MediaAudio)
+		if upErr != nil {
+			return nil, fmt.Errorf("upload: %w", upErr)
+		}
+		audioMime := "audio/ogg; codecs=opus"
+		switch ext {
+		case ".m4a", ".aac":
+			audioMime = "audio/mp4"
+		case ".mp3":
+			audioMime = "audio/mpeg"
+		case ".wav":
+			audioMime = "audio/wav"
+		}
+		aud := &waE2E.AudioMessage{
+			URL:           proto.String(up.URL),
+			DirectPath:    proto.String(up.DirectPath),
+			MediaKey:      up.MediaKey,
+			FileEncSHA256: up.FileEncSHA256,
+			FileSHA256:    up.FileSHA256,
+			FileLength:    proto.Uint64(up.FileLength),
+			Mimetype:      proto.String(audioMime),
+			PTT:           proto.Bool(true),
+		}
+		msg = &waE2E.Message{AudioMessage: aud}
+		msgType = "audio"
 	} else {
 		up, upErr := e.client.Upload(e.ctx, data, whatsmeow.MediaDocument)
 		if upErr != nil {
@@ -982,6 +1011,8 @@ func (e *Engine) SendMedia(p ipc.SendMediaParams) (interface{}, error) {
 	}
 	if msgType == "image" {
 		sent.MediaPath = p.FilePath // show the local file inline right away
+	} else if msgType == "audio" {
+		sent.Text = "[voice message]"
 	} else if p.Caption == "" {
 		sent.Text = filepath.Base(p.FilePath)
 	}

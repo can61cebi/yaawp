@@ -12,7 +12,7 @@ include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(ECMQmlModule)
 
-find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickControls2 Network)
+find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickControls2 Network Multimedia)
 find_package(KF6 6.0 REQUIRED COMPONENTS Kirigami CoreAddons I18n Notifications StatusNotifierItem)
 
 qt_standard_project_setup(REQUIRES 6.6)
@@ -48,6 +48,7 @@ target_link_libraries(yaawp PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Network
+    Qt6::Multimedia
     KF6::CoreAddons
     KF6::I18n
     KF6::Notifications
