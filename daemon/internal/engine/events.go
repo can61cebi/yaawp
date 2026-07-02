@@ -154,6 +154,21 @@ func (e *Engine) handleSpecialMessage(evt *events.Message) bool {
 		}))
 		return true
 	}
+	if pm := m.GetProtocolMessage(); pm != nil && pm.GetType() == waE2E.ProtocolMessage_MESSAGE_EDIT {
+		chatJID := e.canonicalJID(evt.Info.Chat.String())
+		targetID := pm.GetKey().GetID()
+		_, newText, ok := describeMessage(pm.GetEditedMessage())
+		if !ok {
+			return true
+		}
+		_ = e.db.UpdateText(chatJID, targetID, newText)
+		e.emit(ipc.NewEvent(ipc.EventMessageEdited, map[string]any{
+			"chat_jid":   chatJID,
+			"message_id": targetID,
+			"text":       newText,
+		}))
+		return true
+	}
 	if r := m.GetReactionMessage(); r != nil {
 		chatJID := e.canonicalJID(evt.Info.Chat.String())
 		targetID := r.GetKey().GetID()

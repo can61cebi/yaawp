@@ -15,6 +15,7 @@ MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::messageMediaChanged, this, &MessageModel::onMessageMedia);
     connect(ipc, &IpcClient::messageRevoked, this, &MessageModel::onMessageRevoked);
     connect(ipc, &IpcClient::reactionReceived, this, &MessageModel::onReaction);
+    connect(ipc, &IpcClient::messageEdited, this, &MessageModel::onMessageEdited);
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -67,6 +68,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     }
     case QuotedTextRole:
         return m.quotedText;
+    case EditedRole:
+        return m.edited;
     case DaySeparatorRole: {
         // Newest first: the older neighbour is at row + 1. Show the day label
         // above the oldest message of each day.
@@ -100,6 +103,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {MediaHeightRole, "mediaHeight"},
         {ReactionsRole, "reactions"},
         {QuotedTextRole, "quotedText"},
+        {EditedRole, "edited"},
     };
 }
 
@@ -214,6 +218,31 @@ void MessageModel::openMedia(const QString &id)
     }
 }
 
+void MessageModel::editMessage(const QString &id, const QString &text)
+{
+    const QString trimmed = text.trimmed();
+    if (trimmed.isEmpty()) {
+        return;
+    }
+    m_ipc->editMessage(m_chatJid, id, trimmed);
+}
+
+void MessageModel::onMessageEdited(const QString &chatJid, const QString &id, const QString &text)
+{
+    if (chatJid != m_chatJid) {
+        return;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).id == id) {
+            m_messages[i].text = text;
+            m_messages[i].edited = true;
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {TextRole, EditedRole});
+            return;
+        }
+    }
+}
+
 void MessageModel::deleteMessage(const QString &id)
 {
     if (!id.isEmpty()) {
@@ -245,6 +274,7 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.mediaPath = o.value(QStringLiteral("media_path")).toString();
     item.mediaWidth = o.value(QStringLiteral("media_w")).toInt();
     item.mediaHeight = o.value(QStringLiteral("media_h")).toInt();
+    item.edited = o.value(QStringLiteral("edited")).toBool();
     item.quotedText = o.value(QStringLiteral("quoted_text")).toString();
     item.quotedSender = o.value(QStringLiteral("quoted_sender")).toString();
     const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();

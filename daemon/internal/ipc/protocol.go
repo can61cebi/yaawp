@@ -28,6 +28,7 @@ const (
 	MethodSendMedia         = "send_media"
 	MethodDownloadMedia     = "download_media"
 	MethodSetActiveChat     = "set_active_chat"
+	MethodEditMessage       = "edit_message"
 )
 
 // Event names (daemon to GUI).
@@ -45,6 +46,7 @@ const (
 	EventMessageRevoked = "message_revoked"
 	EventReaction       = "reaction"
 	EventChatUnread     = "chat_unread"
+	EventMessageEdited  = "message_edited"
 )
 
 // Command is a request from a GUI client.
@@ -148,6 +150,7 @@ type Message struct {
 	MediaWidth  int    `json:"media_w,omitempty"`    // media pixel dimensions, to reserve layout space
 	MediaHeight int    `json:"media_h,omitempty"`
 	RawMedia    []byte `json:"-"` // marshaled protobuf of the media submessage, for on demand download
+	Edited      bool   `json:"edited,omitempty"` // true once the sender edited the message
 
 	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
 
@@ -166,6 +169,13 @@ type DownloadMediaParams struct {
 // messages for it are not counted as unread. An empty jid means none.
 type SetActiveChatParams struct {
 	JID string `json:"jid"`
+}
+
+// EditMessageParams replaces the text of one of our own messages.
+type EditMessageParams struct {
+	ChatJID   string `json:"chat_jid"`
+	MessageID string `json:"message_id"`
+	Text      string `json:"text"`
 }
 
 // Backend is implemented by the engine. The IPC server dispatches commands to
@@ -188,4 +198,5 @@ type Backend interface {
 	SendMedia(p SendMediaParams) (interface{}, error)
 	DownloadMedia(p DownloadMediaParams) (interface{}, error)
 	SetActiveChat(p SetActiveChatParams) (interface{}, error)
+	EditMessage(p EditMessageParams) (interface{}, error)
 }

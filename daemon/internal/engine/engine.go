@@ -634,6 +634,26 @@ func (e *Engine) DeleteMessage(p ipc.DeleteMessageParams) (interface{}, error) {
 	return map[string]any{"ok": true}, nil
 }
 
+// EditMessage replaces the text of one of our own messages and notifies clients.
+func (e *Engine) EditMessage(p ipc.EditMessageParams) (interface{}, error) {
+	chat, err := types.ParseJID(p.ChatJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	newContent := &waE2E.Message{Conversation: proto.String(p.Text)}
+	edit := e.client.BuildEdit(chat, types.MessageID(p.MessageID), newContent)
+	if _, err := e.client.SendMessage(e.ctx, chat, edit); err != nil {
+		return nil, err
+	}
+	_ = e.db.UpdateText(p.ChatJID, p.MessageID, p.Text)
+	e.emit(ipc.NewEvent(ipc.EventMessageEdited, map[string]any{
+		"chat_jid":   p.ChatJID,
+		"message_id": p.MessageID,
+		"text":       p.Text,
+	}))
+	return map[string]any{"ok": true}, nil
+}
+
 // SendReaction reacts to a message with an emoji, or removes the reaction when
 // the emoji is empty.
 func (e *Engine) SendReaction(p ipc.SendReactionParams) (interface{}, error) {

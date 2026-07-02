@@ -167,6 +167,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p SetActiveChatParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.SetActiveChat(p)
+	case MethodEditMessage:
+		var p EditMessageParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.EditMessage(p)
 	default:
 		err = errUnknownMethod
 	}

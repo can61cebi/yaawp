@@ -27,6 +27,7 @@ struct MessageItem {
     QString quotedText;
     QString quotedSender;
     QMap<QString, QString> reactions; // sender jid -> emoji
+    bool edited = false;  // the sender edited this message
     bool pending = false; // local echo awaiting the server copy
 };
 
@@ -56,6 +57,7 @@ public:
         MediaHeightRole,
         ReactionsRole,
         QuotedTextRole,
+        EditedRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -75,6 +77,7 @@ public:
     Q_INVOKABLE int indexOfMessage(const QString &id) const;
     // Open a message's attachment, downloading it on demand when not yet cached.
     Q_INVOKABLE void openMedia(const QString &id);
+    Q_INVOKABLE void editMessage(const QString &id, const QString &text);
 
     QString replyText() const { return m_replyText; }
     QString replySenderName() const { return m_replySenderName; }
@@ -93,6 +96,7 @@ private Q_SLOTS:
     void onMessageReceived(const QJsonObject &message);
     void onMessageStatus(const QString &chatJid, const QStringList &ids, const QString &status);
     void onMessageMedia(const QString &chatJid, const QString &id, const QString &mediaPath);
+    void onMessageEdited(const QString &chatJid, const QString &id, const QString &text);
     void onMessageRevoked(const QString &chatJid, const QString &id);
     void onReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, const QString &emoji, bool fromMe);
 

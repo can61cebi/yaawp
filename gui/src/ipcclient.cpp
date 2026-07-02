@@ -160,6 +160,10 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
     } else if (event == QStringLiteral("chat_unread")) {
         Q_EMIT chatUnreadChanged(data.value(QStringLiteral("chat_jid")).toString(),
                                  data.value(QStringLiteral("unread")).toInt());
+    } else if (event == QStringLiteral("message_edited")) {
+        Q_EMIT messageEdited(data.value(QStringLiteral("chat_jid")).toString(),
+                             data.value(QStringLiteral("message_id")).toString(),
+                             data.value(QStringLiteral("text")).toString());
     }
     Q_EMIT eventReceived(event, data);
 }
@@ -269,6 +273,15 @@ void IpcClient::setActiveChat(const QString &jid)
     QJsonObject p;
     p.insert(QStringLiteral("jid"), jid);
     send(QStringLiteral("set_active_chat"), p);
+}
+
+void IpcClient::editMessage(const QString &chatJid, const QString &id, const QString &text)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("message_id"), id);
+    p.insert(QStringLiteral("text"), text);
+    send(QStringLiteral("edit_message"), p);
 }
 
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)

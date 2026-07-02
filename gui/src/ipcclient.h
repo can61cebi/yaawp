@@ -35,6 +35,7 @@ public:
     Q_INVOKABLE void sendMedia(const QString &chatJid, const QString &filePath, const QString &caption);
     Q_INVOKABLE void downloadMedia(const QString &chatJid, const QString &id);
     Q_INVOKABLE void setActiveChat(const QString &jid);
+    Q_INVOKABLE void editMessage(const QString &chatJid, const QString &id, const QString &text);
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:
@@ -53,6 +54,7 @@ Q_SIGNALS:
     void messageRevoked(const QString &chatJid, const QString &id);
     void reactionReceived(const QString &chatJid, const QString &messageId, const QString &senderJid, const QString &emoji, bool fromMe);
     void chatUnreadChanged(const QString &chatJid, int unread);
+    void messageEdited(const QString &chatJid, const QString &id, const QString &text);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:

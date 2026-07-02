@@ -10,6 +10,7 @@ Kirigami.Page {
     property string chatTitle: "Conversation"
     property string chatJid: ""
     property bool typingActive: false
+    property string editingId: ""
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
@@ -20,9 +21,28 @@ Kirigami.Page {
         if (value.length === 0) {
             return
         }
+        if (page.editingId.length > 0) {
+            MessageModel.editMessage(page.editingId, value)
+            page.cancelEdit()
+            page.stopTyping()
+            return
+        }
         MessageModel.sendText(value)
         input.clear()
         page.stopTyping()
+    }
+
+    function startEdit(id, text) {
+        MessageModel.clearReply()
+        page.editingId = id
+        input.text = text
+        input.forceActiveFocus()
+        input.cursorPosition = input.text.length
+    }
+
+    function cancelEdit() {
+        page.editingId = ""
+        input.clear()
     }
 
     function startTyping() {
@@ -166,6 +186,28 @@ Kirigami.Page {
 
             RowLayout {
                 Layout.fillWidth: true
+                visible: page.editingId.length > 0
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.Icon {
+                    source: "document-edit"
+                    Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                }
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    text: "Editing message"
+                    color: Kirigami.Theme.highlightColor
+                    elide: Text.ElideRight
+                }
+                QQC2.ToolButton {
+                    icon.name: "dialog-close"
+                    onClicked: page.cancelEdit()
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
                 QQC2.ToolButton {
                     icon.name: "mail-attachment-symbolic"
                     onClicked: fileDialog.open()
@@ -225,6 +267,7 @@ Kirigami.Page {
             required property string reactions
             required property string quotedText
             required property string daySeparator
+            required property bool edited
 
             width: messages.width
             implicitHeight: dcol.height
@@ -322,6 +365,12 @@ Kirigami.Page {
                                 visible: row.type !== "revoked"
                                 height: visible ? implicitHeight : 0
                                 onTriggered: MessageModel.setReplyTo(row.messageId)
+                            }
+                            QQC2.MenuItem {
+                                text: "Edit"
+                                visible: row.fromMe && row.type === "text"
+                                height: visible ? implicitHeight : 0
+                                onTriggered: page.startEdit(row.messageId, row.text)
                             }
                             QQC2.MenuItem {
                                 text: "Copy"
@@ -470,6 +519,16 @@ Kirigami.Page {
                                     id: metaContent
                                     anchors.right: parent.right
                                     spacing: Kirigami.Units.smallSpacing
+
+                                    QQC2.Label {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: row.edited && row.type !== "revoked"
+                                        text: "edited"
+                                        font: Kirigami.Theme.smallFont
+                                        font.italic: true
+                                        opacity: 0.6
+                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    }
 
                                     QQC2.Label {
                                         anchors.verticalCenter: parent.verticalCenter

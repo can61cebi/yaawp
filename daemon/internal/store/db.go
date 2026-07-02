@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS messages (
     media_w    INTEGER NOT NULL DEFAULT 0,
     media_h    INTEGER NOT NULL DEFAULT 0,
     raw_media  BLOB,
+    edited     INTEGER NOT NULL DEFAULT 0,
     quoted_id     TEXT NOT NULL DEFAULT '',
     quoted_sender TEXT NOT NULL DEFAULT '',
     quoted_text   TEXT NOT NULL DEFAULT '',
@@ -54,8 +55,8 @@ CREATE TABLE IF NOT EXISTS reactions (
 `
 
 const insertMessageSQL = `INSERT OR IGNORE INTO messages
-    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, raw_media, quoted_id, quoted_sender, quoted_text)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, raw_media, edited, quoted_id, quoted_sender, quoted_text)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 // updateChatSQL advances a chat summary only when the incoming message is at
 // least as recent as the stored one.
@@ -96,6 +97,7 @@ func (d *DB) migrate() {
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_w INTEGER NOT NULL DEFAULT 0`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_h INTEGER NOT NULL DEFAULT 0`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN raw_media BLOB`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN edited INTEGER NOT NULL DEFAULT 0`)
 }
 
 // Close releases the database handle.
@@ -131,7 +133,7 @@ func (d *DB) PutMessages(msgs []ipc.Message) error {
 	defer func() { _ = upChat.Close() }()
 
 	for _, m := range msgs {
-		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.MediaWidth, m.MediaHeight, m.RawMedia, m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
+		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.MediaWidth, m.MediaHeight, m.RawMedia, boolToInt(m.Edited), m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
 			return err
 		}
 		if _, err := upChat.Exec(m.ChatJID, m.Timestamp, m.Text); err != nil {
@@ -201,6 +203,12 @@ func (d *DB) MarkRevoked(chatJID, id string) error {
 	_, err := d.sql.Exec(
 		`UPDATE messages SET type = 'revoked', text = '', media_path = '' WHERE chat_jid = ? AND id = ?`,
 		chatJID, id)
+	return err
+}
+
+// UpdateText replaces a message's text and marks it as edited.
+func (d *DB) UpdateText(chatJID, id, text string) error {
+	_, err := d.sql.Exec(`UPDATE messages SET text = ?, edited = 1 WHERE chat_jid = ? AND id = ?`, text, chatJID, id)
 	return err
 }
 
@@ -280,7 +288,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 		limit = 50
 	}
 	rows, err := d.sql.Query(
-		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, quoted_id, quoted_sender, quoted_text
+		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, edited, quoted_id, quoted_sender, quoted_text
 		 FROM messages WHERE chat_jid = ? ORDER BY ts DESC LIMIT ?`,
 		chatJID, limit)
 	if err != nil {
@@ -291,11 +299,12 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 	msgs := []ipc.Message{}
 	for rows.Next() {
 		var m ipc.Message
-		var fromMe int
-		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.MediaWidth, &m.MediaHeight, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
+		var fromMe, edited int
+		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.MediaWidth, &m.MediaHeight, &edited, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
 			return nil, err
 		}
 		m.FromMe = fromMe != 0
+		m.Edited = edited != 0
 		msgs = append(msgs, m)
 	}
 	if err := rows.Err(); err != nil {
