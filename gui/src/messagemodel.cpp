@@ -1,6 +1,8 @@
 #include "messagemodel.h"
 #include "ipcclient.h"
 
+#include <QStringList>
+
 MessageModel::MessageModel(IpcClient *ipc, QObject *parent)
     : QAbstractListModel(parent)
     , m_ipc(ipc)
@@ -105,6 +107,15 @@ void MessageModel::onMessagesReceived(const QJsonArray &messages)
         m_messages.append(item);
     }
     endResetModel();
+
+    // Mark the incoming messages in this history batch as read.
+    QStringList unread;
+    for (const MessageItem &m : m_messages) {
+        if (!m.fromMe && !m.id.isEmpty()) {
+            unread.append(m.id);
+        }
+    }
+    m_ipc->markRead(m_chatJid, unread);
 }
 
 void MessageModel::append(const MessageItem &item)
@@ -125,4 +136,9 @@ void MessageModel::onMessageReceived(const QJsonObject &message)
         return;
     }
     append(item);
+
+    // The chat is open, so mark an incoming message as read right away.
+    if (!item.fromMe && !item.id.isEmpty()) {
+        m_ipc->markRead(m_chatJid, {item.id});
+    }
 }

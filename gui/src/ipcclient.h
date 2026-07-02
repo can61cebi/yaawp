@@ -7,6 +7,7 @@
 #include <QLocalSocket>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 // IpcClient owns the Unix socket connection to yaawp-daemon and translates the
 // newline-delimited JSON protocol into Qt signals and invokable methods.
@@ -26,6 +27,7 @@ public:
     Q_INVOKABLE void requestChats();
     Q_INVOKABLE void requestMessages(const QString &chatJid, int limit = 50);
     Q_INVOKABLE void sendText(const QString &chatJid, const QString &text);
+    void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:
     void connectedChanged();

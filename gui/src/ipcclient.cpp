@@ -157,3 +157,18 @@ void IpcClient::sendText(const QString &chatJid, const QString &text)
     p.insert(QStringLiteral("text"), text);
     send(QStringLiteral("send_text"), p);
 }
+
+void IpcClient::markRead(const QString &chatJid, const QStringList &ids)
+{
+    if (ids.isEmpty()) {
+        return;
+    }
+    QJsonArray arr;
+    for (const QString &id : ids) {
+        arr.append(id);
+    }
+    QJsonObject p;
+    p.insert(QStringLiteral("chat_jid"), chatJid);
+    p.insert(QStringLiteral("message_ids"), arr);
+    send(QStringLiteral("mark_read"), p);
+}
