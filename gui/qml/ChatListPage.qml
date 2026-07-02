@@ -18,7 +18,7 @@ Kirigami.Page {
         Kirigami.Action {
             text: "Settings"
             icon.name: "configure"
-            onTriggered: applicationWindow().pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+            onTriggered: applicationWindow().showSettings()
         }
     ]
 
@@ -78,11 +78,7 @@ Kirigami.Page {
                         }
                     }
 
-                    onClicked: {
-                        MessageModel.setChat(item.jid)
-                        Controller.currentChatJid = item.jid
-                        applicationWindow().pageStack.push(Qt.resolvedUrl("ConversationPage.qml"), { chatTitle: item.name })
-                    }
+                    onClicked: applicationWindow().showConversation(item.jid, item.name)
                 }
 
                 Kirigami.PlaceholderMessage {

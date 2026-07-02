@@ -8,10 +8,11 @@ Kirigami.Page {
     id: page
 
     property string chatTitle: "Conversation"
+    property string chatJid: ""
     property bool typingActive: false
     property bool restored: false
     property bool followBottom: true
-    readonly property bool isGroup: Controller.currentChatJid.endsWith("@g.us")
+    readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
     padding: 0
@@ -28,7 +29,7 @@ Kirigami.Page {
 
     function startTyping() {
         if (!page.typingActive) {
-            Ipc.setTyping(Controller.currentChatJid, true)
+            Ipc.setTyping(page.chatJid, true)
             page.typingActive = true
         }
         typingTimer.restart()
@@ -37,7 +38,7 @@ Kirigami.Page {
     function stopTyping() {
         typingTimer.stop()
         if (page.typingActive) {
-            Ipc.setTyping(Controller.currentChatJid, false)
+            Ipc.setTyping(page.chatJid, false)
             page.typingActive = false
         }
     }
@@ -52,7 +53,7 @@ Kirigami.Page {
 
     function positionInitially() {
         if (Settings.rememberScroll) {
-            var y = Controller.savedScroll(Controller.currentChatJid)
+            var y = Controller.savedScroll(page.chatJid)
             if (y >= 0) {
                 messages.contentY = Math.min(y, Math.max(0, messages.contentHeight - messages.height))
                 page.followBottom = false
@@ -63,10 +64,20 @@ Kirigami.Page {
         page.followBottom = true
     }
 
+    function saveScrollNow() {
+        if (Settings.rememberScroll && page.chatJid.length > 0) {
+            Controller.saveScroll(page.chatJid, messages.contentY)
+        }
+    }
+
     Component.onDestruction: {
         page.stopTyping()
-        if (Settings.rememberScroll) {
-            Controller.saveScroll(Controller.currentChatJid, messages.contentY)
+        // Save only when this page is still the current chat (a plain back or
+        // window close). During a chat switch the scroll is saved explicitly
+        // before the model changes, so skip here to avoid overwriting it with
+        // the next chat's position.
+        if (page.chatJid.length > 0 && page.chatJid === Controller.currentChatJid) {
+            page.saveScrollNow()
         }
     }
 
@@ -264,7 +275,8 @@ Kirigami.Page {
                 anchors.left: row.fromMe ? undefined : parent.left
                 anchors.right: row.fromMe ? parent.right : undefined
                 anchors.leftMargin: Kirigami.Units.largeSpacing
-                anchors.rightMargin: Kirigami.Units.largeSpacing
+                // Reserve a gutter on the right so bubbles clear the scrollbar.
+                anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
 
                 width: contentW + hpad * 2
                 height: content.height + vpad * 2
@@ -431,8 +443,12 @@ Kirigami.Page {
     QQC2.RoundButton {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: Kirigami.Units.largeSpacing
-        visible: !messages.atYEnd
+        anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
+        anchors.bottomMargin: Kirigami.Units.largeSpacing
+        // Only show when meaningfully scrolled up, so it never covers the
+        // newest message while at the bottom.
+        visible: messages.contentHeight > messages.height + 1
+                 && (messages.contentHeight - messages.contentY - messages.height) > Kirigami.Units.gridUnit * 3
         icon.name: "go-down-symbolic"
         onClicked: {
             messages.positionViewAtEnd()
