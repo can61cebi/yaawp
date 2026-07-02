@@ -224,6 +224,22 @@ func (d *DB) MediaInfo(chatJID, id string) (raw []byte, typ string, err error) {
 	return raw, typ, err
 }
 
+// IncrementUnread bumps a chat's unread counter and returns the new value.
+func (d *DB) IncrementUnread(jid string) (int, error) {
+	if _, err := d.sql.Exec(`UPDATE chats SET unread = unread + 1 WHERE jid = ?`, jid); err != nil {
+		return 0, err
+	}
+	var n int
+	err := d.sql.QueryRow(`SELECT unread FROM chats WHERE jid = ?`, jid).Scan(&n)
+	return n, err
+}
+
+// ResetUnread clears a chat's unread counter.
+func (d *DB) ResetUnread(jid string) error {
+	_, err := d.sql.Exec(`UPDATE chats SET unread = 0 WHERE jid = ?`, jid)
+	return err
+}
+
 // SetChatName sets the display name and group flag for a chat.
 func (d *DB) SetChatName(jid, name string, isGroup bool) error {
 	_, err := d.sql.Exec(

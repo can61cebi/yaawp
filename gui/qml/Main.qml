@@ -69,6 +69,8 @@ Kirigami.ApplicationWindow {
             conversationPage = pageStack.push(conversationComponent, { chatTitle: name, chatJid: jid })
         }
         currentSecondary = "conversation"
+        // Tell the daemon this chat is on screen so its messages are not unread.
+        Ipc.setActiveChat(jid)
     }
 
     function showSettings() {
@@ -97,6 +99,7 @@ Kirigami.ApplicationWindow {
             if (root.pageStack.depth <= 1) {
                 root.currentSecondary = ""
                 root.conversationPage = null
+                Ipc.setActiveChat("")
             }
         }
     }

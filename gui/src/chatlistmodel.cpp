@@ -7,6 +7,7 @@ ChatListModel::ChatListModel(IpcClient *ipc, QObject *parent)
 {
     connect(ipc, &IpcClient::chatsReceived, this, &ChatListModel::onChatsReceived);
     connect(ipc, &IpcClient::messageReceived, this, &ChatListModel::onMessageReceived);
+    connect(ipc, &IpcClient::chatUnreadChanged, this, &ChatListModel::onChatUnread);
 }
 
 int ChatListModel::rowCount(const QModelIndex &parent) const
@@ -111,4 +112,18 @@ void ChatListModel::onMessageReceived(const QJsonObject &message)
     upsert(jid,
            message.value(QStringLiteral("text")).toString(),
            static_cast<qint64>(message.value(QStringLiteral("timestamp")).toDouble()));
+}
+
+void ChatListModel::onChatUnread(const QString &jid, int unread)
+{
+    for (int i = 0; i < m_chats.size(); ++i) {
+        if (m_chats.at(i).jid == jid) {
+            if (m_chats[i].unread != unread) {
+                m_chats[i].unread = unread;
+                const QModelIndex idx = index(i);
+                Q_EMIT dataChanged(idx, idx, {UnreadRole});
+            }
+            return;
+        }
+    }
 }

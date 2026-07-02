@@ -48,6 +48,7 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 		}
 		e.emit(ipc.NewEvent(ipc.EventMessage, msg))
 		e.maybeDownloadMedia(msg.ChatJID, msg.ID, evt.Message)
+		e.bumpUnread(msg)
 	case *events.Receipt:
 		chatJID := e.canonicalJID(evt.Chat.String())
 		ids := make([]string, len(evt.MessageIDs))

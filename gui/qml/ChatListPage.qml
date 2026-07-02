@@ -62,6 +62,7 @@ Kirigami.Page {
                 required property string jid
                 required property string name
                 required property string lastPreview
+                required property int unread
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.largeSpacing
@@ -84,8 +85,27 @@ Kirigami.Page {
                         QQC2.Label {
                             Layout.fillWidth: true
                             text: item.lastPreview
-                            opacity: 0.7
+                            opacity: item.unread > 0 ? 0.9 : 0.7
+                            font.bold: item.unread > 0
                             elide: Text.ElideRight
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: item.unread > 0
+                        implicitWidth: Math.max(height, badgeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2)
+                        implicitHeight: badgeLabel.implicitHeight + Kirigami.Units.smallSpacing
+                        radius: height / 2
+                        color: Kirigami.Theme.highlightColor
+
+                        QQC2.Label {
+                            id: badgeLabel
+                            anchors.centerIn: parent
+                            text: item.unread > 99 ? "99+" : item.unread
+                            color: Kirigami.Theme.highlightedTextColor
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            font.bold: true
                         }
                     }
                 }

@@ -163,6 +163,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p DownloadMediaParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.DownloadMedia(p)
+	case MethodSetActiveChat:
+		var p SetActiveChatParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.SetActiveChat(p)
 	default:
 		err = errUnknownMethod
 	}

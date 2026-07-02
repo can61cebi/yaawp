@@ -157,6 +157,9 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
                                 data.value(QStringLiteral("sender_jid")).toString(),
                                 data.value(QStringLiteral("emoji")).toString(),
                                 data.value(QStringLiteral("from_me")).toBool());
+    } else if (event == QStringLiteral("chat_unread")) {
+        Q_EMIT chatUnreadChanged(data.value(QStringLiteral("chat_jid")).toString(),
+                                 data.value(QStringLiteral("unread")).toInt());
     }
     Q_EMIT eventReceived(event, data);
 }
@@ -259,6 +262,13 @@ void IpcClient::downloadMedia(const QString &chatJid, const QString &id)
     p.insert(QStringLiteral("chat_jid"), chatJid);
     p.insert(QStringLiteral("message_id"), id);
     send(QStringLiteral("download_media"), p);
+}
+
+void IpcClient::setActiveChat(const QString &jid)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    send(QStringLiteral("set_active_chat"), p);
 }
 
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)

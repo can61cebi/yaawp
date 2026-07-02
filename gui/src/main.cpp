@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    Tray tray;
+    Tray tray(&ipc);
     if (auto *window = qobject_cast<QWindow *>(engine.rootObjects().constFirst())) {
         tray.setWindow(window);
     }

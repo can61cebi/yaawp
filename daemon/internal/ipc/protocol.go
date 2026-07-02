@@ -27,6 +27,7 @@ const (
 	MethodSendReaction      = "send_reaction"
 	MethodSendMedia         = "send_media"
 	MethodDownloadMedia     = "download_media"
+	MethodSetActiveChat     = "set_active_chat"
 )
 
 // Event names (daemon to GUI).
@@ -43,6 +44,7 @@ const (
 	EventMessageMedia   = "message_media"
 	EventMessageRevoked = "message_revoked"
 	EventReaction       = "reaction"
+	EventChatUnread     = "chat_unread"
 )
 
 // Command is a request from a GUI client.
@@ -160,6 +162,12 @@ type DownloadMediaParams struct {
 	MessageID string `json:"message_id"`
 }
 
+// SetActiveChatParams tells the daemon which chat is on screen so incoming
+// messages for it are not counted as unread. An empty jid means none.
+type SetActiveChatParams struct {
+	JID string `json:"jid"`
+}
+
 // Backend is implemented by the engine. The IPC server dispatches commands to
 // it and returns a JSON-serialisable result or an error.
 type Backend interface {
@@ -179,4 +187,5 @@ type Backend interface {
 	SendReaction(p SendReactionParams) (interface{}, error)
 	SendMedia(p SendMediaParams) (interface{}, error)
 	DownloadMedia(p DownloadMediaParams) (interface{}, error)
+	SetActiveChat(p SetActiveChatParams) (interface{}, error)
 }

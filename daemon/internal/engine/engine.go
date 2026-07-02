@@ -49,6 +49,9 @@ type Engine struct {
 
 	qrMu   sync.Mutex
 	lastQR string
+
+	activeMu   sync.Mutex
+	activeChat string // chat currently on screen; its messages are not unread
 }
 
 // New opens the session and application stores, creates the client and attaches
@@ -378,9 +381,56 @@ func buildTextMessage(p ipc.SendTextParams) *waE2E.Message {
 	}
 }
 
+// SetActiveChat records which chat is on screen so its incoming messages are
+// not counted as unread, and clears any pending unread for it.
+func (e *Engine) SetActiveChat(p ipc.SetActiveChatParams) (interface{}, error) {
+	e.activeMu.Lock()
+	e.activeChat = p.JID
+	e.activeMu.Unlock()
+	if p.JID != "" {
+		e.clearUnread(p.JID)
+	}
+	return map[string]any{"ok": true}, nil
+}
+
+// bumpUnread increments the unread counter for an incoming message unless its
+// chat is the one currently on screen, then notifies clients.
+func (e *Engine) bumpUnread(msg ipc.Message) {
+	if msg.FromMe {
+		return
+	}
+	e.activeMu.Lock()
+	active := e.activeChat
+	e.activeMu.Unlock()
+	if msg.ChatJID == active {
+		return
+	}
+	count, err := e.db.IncrementUnread(msg.ChatJID)
+	if err != nil {
+		return
+	}
+	e.emit(ipc.NewEvent(ipc.EventChatUnread, map[string]any{
+		"chat_jid": msg.ChatJID,
+		"unread":   count,
+	}))
+}
+
+// clearUnread zeroes a chat's unread counter and notifies clients.
+func (e *Engine) clearUnread(chatJID string) {
+	if chatJID == "" {
+		return
+	}
+	if err := e.db.ResetUnread(chatJID); err != nil {
+		return
+	}
+	e.emit(ipc.NewEvent(ipc.EventChatUnread, map[string]any{"chat_jid": chatJID, "unread": 0}))
+}
+
 // MarkRead sends read receipts for the given messages. Group chats need a per
 // message participant and are not handled yet.
 func (e *Engine) MarkRead(p ipc.MarkReadParams) (interface{}, error) {
+	// Reading a chat clears its unread badge, groups included.
+	e.clearUnread(p.ChatJID)
 	if len(p.MessageIDs) == 0 {
 		return map[string]any{"ok": true}, nil
 	}

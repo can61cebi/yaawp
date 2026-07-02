@@ -40,6 +40,7 @@ public:
 private Q_SLOTS:
     void onChatsReceived(const QJsonArray &chats);
     void onMessageReceived(const QJsonObject &message);
+    void onChatUnread(const QString &jid, int unread);
 
 private:
     int indexOfJid(const QString &jid) const;
