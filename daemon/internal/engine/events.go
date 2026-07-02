@@ -22,7 +22,9 @@ func (e *Engine) handleEvent(rawEvt interface{}) {
 	case *events.Connected:
 		e.setQR("")
 		// Announce availability so the server delivers others' presence to us.
-		go func() { _ = e.client.SendPresence(e.ctx, types.PresenceAvailable) }()
+		if !e.onlineHidden() {
+			go func() { _ = e.client.SendPresence(e.ctx, types.PresenceAvailable) }()
+		}
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "connected"}))
 	case *events.Disconnected:
 		e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "disconnected"}))

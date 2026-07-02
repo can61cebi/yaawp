@@ -325,6 +325,14 @@ void IpcClient::setBlocked(const QString &jid, bool blocked)
     send(QStringLiteral("set_blocked"), p);
 }
 
+void IpcClient::setPrivacy(bool readReceipts, bool shareOnline)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("read_receipts"), readReceipts);
+    p.insert(QStringLiteral("share_online"), shareOnline);
+    send(QStringLiteral("set_privacy"), p);
+}
+
 void IpcClient::setPinned(const QString &jid, bool pinned)
 {
     QJsonObject p;

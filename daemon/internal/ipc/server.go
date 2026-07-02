@@ -187,6 +187,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		var p SetBlockedParams
 		_ = json.Unmarshal(cmd.Params, &p)
 		result, err = s.backend.SetBlocked(p)
+	case MethodSetPrivacy:
+		var p SetPrivacyParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.SetPrivacy(p)
 	case MethodSetPinned:
 		var p SetPinnedParams
 		_ = json.Unmarshal(cmd.Params, &p)

@@ -33,6 +33,7 @@ const (
 	MethodContactInfo       = "contact_info"
 	MethodSetDisappearing   = "set_disappearing"
 	MethodSetBlocked        = "set_blocked"
+	MethodSetPrivacy        = "set_privacy"
 	MethodSetPinned         = "set_pinned"
 	MethodSetMuted          = "set_muted"
 	MethodStarMessage       = "star_message"
@@ -215,6 +216,12 @@ type SetBlockedParams struct {
 	Blocked bool   `json:"blocked"`
 }
 
+// SetPrivacyParams controls whether read receipts and online presence are sent.
+type SetPrivacyParams struct {
+	ReadReceipts bool `json:"read_receipts"`
+	ShareOnline  bool `json:"share_online"`
+}
+
 // SetPinnedParams pins or unpins a chat to the top of the list.
 type SetPinnedParams struct {
 	JID    string `json:"jid"`
@@ -264,6 +271,7 @@ type Backend interface {
 	ContactInfo(p ContactInfoParams) (interface{}, error)
 	SetDisappearing(p SetDisappearingParams) (interface{}, error)
 	SetBlocked(p SetBlockedParams) (interface{}, error)
+	SetPrivacy(p SetPrivacyParams) (interface{}, error)
 	SetPinned(p SetPinnedParams) (interface{}, error)
 	SetMuted(p SetMutedParams) (interface{}, error)
 	StarMessage(p StarMessageParams) (interface{}, error)

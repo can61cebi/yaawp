@@ -54,6 +54,10 @@ type Engine struct {
 
 	activeMu   sync.Mutex
 	activeChat string // chat currently on screen; its messages are not unread
+
+	privMu           sync.Mutex
+	hideReadReceipts bool // when true, do not send read receipts
+	hideOnline       bool // when true, do not share online or typing presence
 }
 
 // New opens the session and application stores, creates the client and attaches
@@ -326,6 +330,27 @@ func (e *Engine) ContactInfo(p ipc.ContactInfoParams) (interface{}, error) {
 		"avatar":  avatarPath,
 		"blocked": blocked,
 	}, nil
+}
+
+// SetPrivacy controls whether read receipts and online presence are shared.
+func (e *Engine) SetPrivacy(p ipc.SetPrivacyParams) (interface{}, error) {
+	e.privMu.Lock()
+	e.hideReadReceipts = !p.ReadReceipts
+	e.hideOnline = !p.ShareOnline
+	e.privMu.Unlock()
+	return map[string]any{"ok": true}, nil
+}
+
+func (e *Engine) readReceiptsHidden() bool {
+	e.privMu.Lock()
+	defer e.privMu.Unlock()
+	return e.hideReadReceipts
+}
+
+func (e *Engine) onlineHidden() bool {
+	e.privMu.Lock()
+	defer e.privMu.Unlock()
+	return e.hideOnline
 }
 
 // SetBlocked blocks or unblocks a contact.
@@ -616,8 +641,10 @@ func (e *Engine) MarkRead(p ipc.MarkReadParams) (interface{}, error) {
 	for i, s := range p.MessageIDs {
 		ids[i] = types.MessageID(s)
 	}
-	if err := e.client.MarkRead(e.ctx, ids, time.Now(), chat, chat); err != nil {
-		return nil, err
+	if !e.readReceiptsHidden() {
+		if err := e.client.MarkRead(e.ctx, ids, time.Now(), chat, chat); err != nil {
+			return nil, err
+		}
 	}
 	return map[string]any{"ok": true}, nil
 }
@@ -627,6 +654,9 @@ func (e *Engine) SetTyping(p ipc.SetTypingParams) (interface{}, error) {
 	jid, err := types.ParseJID(p.ChatJID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	if e.onlineHidden() {
+		return map[string]any{"ok": true}, nil
 	}
 	state := types.ChatPresencePaused
 	if p.Composing {

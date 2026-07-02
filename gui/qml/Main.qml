@@ -86,11 +86,26 @@ Kirigami.ApplicationWindow {
         currentSecondary = "settings"
     }
 
+    // Push the privacy preferences to the daemon on connect and on change, since
+    // the daemon holds them only in memory.
+    function pushPrivacy() {
+        Ipc.setPrivacy(Settings.readReceipts, Settings.shareOnline)
+    }
+
     Connections {
         target: Controller
         function onConnectionStateChanged() {
             root.refreshRoot()
+            if (Controller.loggedIn) {
+                root.pushPrivacy()
+            }
         }
+    }
+
+    Connections {
+        target: Settings
+        function onReadReceiptsChanged() { root.pushPrivacy() }
+        function onShareOnlineChanged() { root.pushPrivacy() }
     }
 
     Connections {

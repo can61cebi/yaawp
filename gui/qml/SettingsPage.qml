@@ -32,6 +32,25 @@ FormCard.FormCardPage {
     }
 
     FormCard.FormHeader {
+        title: "Privacy"
+    }
+
+    FormCard.FormCard {
+        FormCard.FormSwitchDelegate {
+            text: "Send read receipts"
+            description: "Let others see when you have read their messages. When off, you will not see their read receipts either."
+            checked: Settings.readReceipts
+            onToggled: Settings.readReceipts = checked
+        }
+        FormCard.FormSwitchDelegate {
+            text: "Share online and typing status"
+            description: "Let others see when you are online or typing."
+            checked: Settings.shareOnline
+            onToggled: Settings.shareOnline = checked
+        }
+    }
+
+    FormCard.FormHeader {
         title: "Appearance"
     }
 
