@@ -12,6 +12,7 @@ Kirigami.Page {
     property string chatJid: ""
     property bool typingActive: false
     property string editingId: ""
+    property var forwardData: null
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
@@ -56,6 +57,25 @@ Kirigami.Page {
     function cancelEdit() {
         page.editingId = ""
         input.clear()
+    }
+
+    function startForward(type, text, mediaPath) {
+        page.forwardData = { "type": type, "text": text, "mediaPath": mediaPath }
+        Ipc.requestChats()
+        forwardSheet.open()
+    }
+
+    function doForward(jid) {
+        if (page.forwardData === null || jid.length === 0) {
+            return
+        }
+        if (page.forwardData.mediaPath.length > 0) {
+            Ipc.sendMedia(jid, page.forwardData.mediaPath, "")
+        } else if (page.forwardData.type === "text") {
+            Ipc.sendText(jid, page.forwardData.text)
+        }
+        page.forwardData = null
+        forwardSheet.close()
     }
 
     function startTyping() {
@@ -192,6 +212,39 @@ Kirigami.Page {
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                     }
                 }
+            }
+        }
+    }
+
+    Kirigami.OverlaySheet {
+        id: forwardSheet
+        title: "Forward to"
+
+        ListView {
+            implicitWidth: Kirigami.Units.gridUnit * 20
+            model: ChatModel
+
+            delegate: QQC2.ItemDelegate {
+                id: fwdItem
+                width: ListView.view.width
+                required property string jid
+                required property string name
+
+                contentItem: RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
+                    KirigamiComponents.Avatar {
+                        Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                        Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                        name: fwdItem.name
+                    }
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        text: fwdItem.name
+                        elide: Text.ElideRight
+                    }
+                }
+
+                onClicked: page.doForward(fwdItem.jid)
             }
         }
     }
@@ -439,6 +492,12 @@ Kirigami.Page {
                                 visible: row.fromMe && row.type === "text"
                                 height: visible ? implicitHeight : 0
                                 onTriggered: page.startEdit(row.messageId, row.text)
+                            }
+                            QQC2.MenuItem {
+                                text: "Forward"
+                                visible: row.type !== "revoked" && (row.type === "text" || row.mediaPath.length > 0)
+                                height: visible ? implicitHeight : 0
+                                onTriggered: page.startForward(row.type, row.text, row.mediaPath)
                             }
                             QQC2.MenuItem {
                                 text: "Copy"
