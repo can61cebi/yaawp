@@ -17,7 +17,8 @@ Status legend: [x] done, [~] in progress, [ ] planned.
 - [x] Read receipts: mark incoming messages read when a chat is open
 - [x] Deduplicate the local echo of a sent message against the stored copy
 - [x] Chat list preview update and move to top on new activity
-- [~] Reconnect handling and a visible connection status in the header
+- [x] Reconnect handling and a visible connection status in the header
+- [x] Start the daemon automatically from the GUI
 
 ## Milestone 2: richer conversation view
 
@@ -27,7 +28,7 @@ Status legend: [x] done, [~] in progress, [ ] planned.
 - [x] Presence in the header: online, last seen, typing
 - [x] Message reactions: send, receive, and display
 - [x] Message context menu: copy and delete for everyone
-- [ ] Reply and quote
+- [x] Reply and quote
 - [ ] Unread counts and ordering in the chat list
 
 ## Milestone 3: media
@@ -41,11 +42,12 @@ Status legend: [x] done, [~] in progress, [ ] planned.
 
 ## Milestone 4: KDE integration
 
-- [ ] System tray icon with an unread badge
-- [ ] Inline reply action from a notification
+- [x] System tray icon, close to tray, restore from tray
+- [x] Inline reply action from a notification
+- [x] systemd user service for the daemon
+- [x] Install target and application menu entry
+- [ ] Unread badge on the tray icon
 - [ ] Store session secrets in KWallet
-- [ ] systemd user service for the daemon with autostart
-- [ ] Install target and application menu entry
 
 ## Milestone 5: distribution and polish
 
