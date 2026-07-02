@@ -13,7 +13,7 @@ include(KDECMakeSettings)
 include(ECMQmlModule)
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickControls2 Network)
-find_package(KF6 6.0 REQUIRED COMPONENTS Kirigami CoreAddons I18n Notifications)
+find_package(KF6 6.0 REQUIRED COMPONENTS Kirigami CoreAddons I18n Notifications StatusNotifierItem)
 
 qt_standard_project_setup(REQUIRES 6.6)
 
@@ -24,6 +24,7 @@ qt_add_executable(yaawp
     src/chatlistmodel.cpp
     src/messagemodel.cpp
     src/notifier.cpp
+    src/tray.cpp
 )
 
 qt_add_qml_module(yaawp
@@ -47,6 +48,7 @@ target_link_libraries(yaawp PRIVATE
     KF6::CoreAddons
     KF6::I18n
     KF6::Notifications
+    KF6::StatusNotifierItem
 )
 
 install(TARGETS yaawp ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})

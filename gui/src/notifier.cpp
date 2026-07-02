@@ -3,6 +3,9 @@
 #include "ipcclient.h"
 
 #include <KNotification>
+#include <KNotificationReplyAction>
+
+#include <memory>
 
 Notifier::Notifier(IpcClient *ipc, Controller *controller, QObject *parent)
     : QObject(parent)
@@ -26,10 +29,13 @@ void Notifier::onMessageReceived(const QJsonObject &message)
         return;
     }
 
-    QString title = chatJid;
-    const int at = title.indexOf(QLatin1Char('@'));
-    if (at > 0) {
-        title = title.left(at);
+    QString title = message.value(QStringLiteral("sender_name")).toString();
+    if (title.isEmpty()) {
+        title = chatJid;
+        const int at = title.indexOf(QLatin1Char('@'));
+        if (at > 0) {
+            title = title.left(at);
+        }
     }
 
     auto *notification = new KNotification(QStringLiteral("newMessage"));
@@ -37,5 +43,13 @@ void Notifier::onMessageReceived(const QJsonObject &message)
     notification->setTitle(title);
     notification->setText(text);
     notification->setIconName(QStringLiteral("internet-mail"));
+
+    auto reply = std::make_unique<KNotificationReplyAction>(QStringLiteral("Reply"));
+    reply->setPlaceholderText(QStringLiteral("Reply to %1").arg(title));
+    connect(reply.get(), &KNotificationReplyAction::replied, this, [this, chatJid](const QString &replyText) {
+        m_ipc->sendText(chatJid, replyText);
+    });
+    notification->setReplyAction(std::move(reply));
+
     notification->sendEvent();
 }

@@ -3,6 +3,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QWindow>
 
 #include <KLocalizedContext>
 #include <KLocalizedString>
@@ -12,6 +13,7 @@
 #include "ipcclient.h"
 #include "messagemodel.h"
 #include "notifier.h"
+#include "tray.h"
 
 int main(int argc, char *argv[])
 {
@@ -26,6 +28,9 @@ int main(int argc, char *argv[])
     if (QQuickStyle::name().isEmpty()) {
         QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
     }
+
+    // Keep running in the system tray when the window is closed.
+    QApplication::setQuitOnLastWindowClosed(false);
 
     KLocalizedString::setApplicationDomain("yaawp");
 
@@ -45,6 +50,11 @@ int main(int argc, char *argv[])
     engine.loadFromModule("tr.cebi.yaawp", "Main");
     if (engine.rootObjects().isEmpty()) {
         return -1;
+    }
+
+    Tray tray;
+    if (auto *window = qobject_cast<QWindow *>(engine.rootObjects().constFirst())) {
+        tray.setWindow(window);
     }
 
     ipc.connectToDaemon();

@@ -14,6 +14,12 @@ Kirigami.ApplicationWindow {
 
     pageStack.initialPage: Qt.resolvedUrl("LoginPage.qml")
 
+    // Closing the window hides it to the system tray instead of quitting.
+    onClosing: (close) => {
+        close.accepted = false
+        root.visible = false
+    }
+
     // Swap the root page only when crossing the logged-in boundary, so the page
     // is not recreated on every connection state change.
     function refreshRoot() {
