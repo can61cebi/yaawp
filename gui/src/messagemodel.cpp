@@ -61,6 +61,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         }
         return distinct.join(QString());
     }
+    case QuotedTextRole:
+        return m.quotedText;
     default:
         return {};
     }
@@ -80,6 +82,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {StatusRole, "status"},
         {MediaPathRole, "mediaPath"},
         {ReactionsRole, "reactions"},
+        {QuotedTextRole, "quotedText"},
     };
 }
 
@@ -99,7 +102,7 @@ void MessageModel::sendText(const QString &text)
     if (m_chatJid.isEmpty() || text.isEmpty()) {
         return;
     }
-    m_ipc->sendText(m_chatJid, text);
+    m_ipc->sendText(m_chatJid, text, m_replyId, m_replySender, m_replyText);
 
     // Local echo for instant feedback. The daemon broadcasts the stored copy,
     // which reconciles this entry (see onMessageReceived).
@@ -108,8 +111,38 @@ void MessageModel::sendText(const QString &text)
     item.text = text;
     item.status = QStringLiteral("sent");
     item.timestamp = QDateTime::currentSecsSinceEpoch();
+    item.quotedText = m_replyText;
+    item.quotedSender = m_replySender;
     item.pending = true;
     append(item);
+
+    clearReply();
+}
+
+void MessageModel::setReplyTo(const QString &messageId)
+{
+    for (const MessageItem &m : m_messages) {
+        if (m.id == messageId) {
+            m_replyId = m.id;
+            m_replySender = m.senderJid;
+            m_replyText = m.text.isEmpty() ? QStringLiteral("[media]") : m.text;
+            m_replySenderName = m.fromMe ? QStringLiteral("You") : m.senderName;
+            Q_EMIT replyChanged();
+            return;
+        }
+    }
+}
+
+void MessageModel::clearReply()
+{
+    if (m_replyId.isEmpty()) {
+        return;
+    }
+    m_replyId.clear();
+    m_replySender.clear();
+    m_replyText.clear();
+    m_replySenderName.clear();
+    Q_EMIT replyChanged();
 }
 
 void MessageModel::deleteMessage(const QString &id)
@@ -141,6 +174,8 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.type = o.value(QStringLiteral("type")).toString();
     item.status = o.value(QStringLiteral("status")).toString();
     item.mediaPath = o.value(QStringLiteral("media_path")).toString();
+    item.quotedText = o.value(QStringLiteral("quoted_text")).toString();
+    item.quotedSender = o.value(QStringLiteral("quoted_sender")).toString();
     const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();
     for (auto it = reacts.constBegin(); it != reacts.constEnd(); ++it) {
         item.reactions.insert(it.key(), it.value().toString());

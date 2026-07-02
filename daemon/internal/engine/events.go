@@ -181,17 +181,42 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 	if evt.Info.IsFromMe {
 		status = "sent"
 	}
+	qid, qsender, qtext := e.extractQuote(evt.Message)
 	return ipc.Message{
-		ID:         evt.Info.ID,
-		ChatJID:    e.canonicalJID(evt.Info.Chat.String()),
-		SenderJID:  e.canonicalJID(evt.Info.Sender.String()),
-		SenderName: evt.Info.PushName,
-		FromMe:     evt.Info.IsFromMe,
-		Timestamp:  evt.Info.Timestamp.Unix(),
-		Type:       typ,
-		Text:       text,
-		Status:     status,
+		ID:           evt.Info.ID,
+		ChatJID:      e.canonicalJID(evt.Info.Chat.String()),
+		SenderJID:    e.canonicalJID(evt.Info.Sender.String()),
+		SenderName:   evt.Info.PushName,
+		FromMe:       evt.Info.IsFromMe,
+		Timestamp:    evt.Info.Timestamp.Unix(),
+		Type:         typ,
+		Text:         text,
+		Status:       status,
+		QuotedID:     qid,
+		QuotedSender: qsender,
+		QuotedText:   qtext,
 	}, true
+}
+
+// extractQuote returns the quoted message id, sender, and text when a message
+// is a reply.
+func (e *Engine) extractQuote(m *waE2E.Message) (id, sender, text string) {
+	if m == nil {
+		return "", "", ""
+	}
+	ext := m.GetExtendedTextMessage()
+	if ext == nil {
+		return "", "", ""
+	}
+	ci := ext.GetContextInfo()
+	if ci == nil || ci.GetQuotedMessage() == nil {
+		return "", "", ""
+	}
+	_, text, ok := describeMessage(ci.GetQuotedMessage())
+	if !ok || text == "" {
+		text = "[media]"
+	}
+	return ci.GetStanzaID(), e.canonicalJID(ci.GetParticipant()), text
 }
 
 // webMsgToIPC converts a history message. chatJID is expected to be canonical.
@@ -205,15 +230,19 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 	if key.GetFromMe() {
 		status = "sent"
 	}
+	qid, qsender, qtext := e.extractQuote(wmi.GetMessage())
 	return ipc.Message{
-		ID:        key.GetID(),
-		ChatJID:   chatJID,
-		SenderJID: e.canonicalJID(senderFromKey(chatJID, key)),
-		FromMe:    key.GetFromMe(),
-		Timestamp: int64(wmi.GetMessageTimestamp()),
-		Type:      typ,
-		Text:      text,
-		Status:    status,
+		ID:           key.GetID(),
+		ChatJID:      chatJID,
+		SenderJID:    e.canonicalJID(senderFromKey(chatJID, key)),
+		FromMe:       key.GetFromMe(),
+		Timestamp:    int64(wmi.GetMessageTimestamp()),
+		Type:         typ,
+		Text:         text,
+		Status:       status,
+		QuotedID:     qid,
+		QuotedSender: qsender,
+		QuotedText:   qtext,
 	}, true
 }
 

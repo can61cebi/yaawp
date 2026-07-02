@@ -303,7 +303,7 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid jid: %w", err)
 	}
-	msg := &waE2E.Message{Conversation: proto.String(p.Text)}
+	msg := buildTextMessage(p)
 	resp, err := e.client.SendMessage(e.ctx, jid, msg)
 	if err != nil {
 		return nil, err
@@ -311,17 +311,41 @@ func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {
 	// Persist the outgoing message and broadcast it so every client (chat list
 	// preview, ordering, and open conversation) updates consistently.
 	sent := ipc.Message{
-		ID:        resp.ID,
-		ChatJID:   p.ChatJID,
-		FromMe:    true,
-		Timestamp: resp.Timestamp.Unix(),
-		Type:      "text",
-		Text:      p.Text,
-		Status:    "sent",
+		ID:           resp.ID,
+		ChatJID:      p.ChatJID,
+		FromMe:       true,
+		Timestamp:    resp.Timestamp.Unix(),
+		Type:         "text",
+		Text:         p.Text,
+		Status:       "sent",
+		QuotedID:     p.QuotedID,
+		QuotedSender: p.QuotedSender,
+		QuotedText:   p.QuotedText,
 	}
 	_ = e.db.PutMessage(sent)
 	e.emit(ipc.NewEvent(ipc.EventMessage, sent))
 	return map[string]any{"message_id": resp.ID, "timestamp": resp.Timestamp.Unix()}, nil
+}
+
+// buildTextMessage builds a plain text message, or a reply carrying the quoted
+// message context when a quote target is set.
+func buildTextMessage(p ipc.SendTextParams) *waE2E.Message {
+	if p.QuotedID == "" {
+		return &waE2E.Message{Conversation: proto.String(p.Text)}
+	}
+	ci := &waE2E.ContextInfo{
+		StanzaID:      proto.String(p.QuotedID),
+		QuotedMessage: &waE2E.Message{Conversation: proto.String(p.QuotedText)},
+	}
+	if p.QuotedSender != "" {
+		ci.Participant = proto.String(p.QuotedSender)
+	}
+	return &waE2E.Message{
+		ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+			Text:        proto.String(p.Text),
+			ContextInfo: ci,
+		},
+	}
 }
 
 // MarkRead sends read receipts for the given messages. Group chats need a per

@@ -217,11 +217,16 @@ void IpcClient::requestMessages(const QString &chatJid, int limit)
     send(QStringLiteral("list_messages"), p);
 }
 
-void IpcClient::sendText(const QString &chatJid, const QString &text)
+void IpcClient::sendText(const QString &chatJid, const QString &text, const QString &quotedId, const QString &quotedSender, const QString &quotedText)
 {
     QJsonObject p;
     p.insert(QStringLiteral("chat_jid"), chatJid);
     p.insert(QStringLiteral("text"), text);
+    if (!quotedId.isEmpty()) {
+        p.insert(QStringLiteral("quoted_id"), quotedId);
+        p.insert(QStringLiteral("quoted_sender"), quotedSender);
+        p.insert(QStringLiteral("quoted_text"), quotedText);
+    }
     send(QStringLiteral("send_text"), p);
 }
 

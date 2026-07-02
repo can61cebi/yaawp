@@ -20,6 +20,8 @@ struct MessageItem {
     QString type;
     QString status;
     QString mediaPath;
+    QString quotedText;
+    QString quotedSender;
     QMap<QString, QString> reactions; // sender jid -> emoji
     bool pending = false; // local echo awaiting the server copy
 };
@@ -29,6 +31,9 @@ struct MessageItem {
 class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(QString replyText READ replyText NOTIFY replyChanged)
+    Q_PROPERTY(QString replySenderName READ replySenderName NOTIFY replyChanged)
+    Q_PROPERTY(bool hasReply READ hasReply NOTIFY replyChanged)
 
 public:
     enum Roles {
@@ -43,6 +48,7 @@ public:
         StatusRole,
         MediaPathRole,
         ReactionsRole,
+        QuotedTextRole,
     };
 
     explicit MessageModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -55,6 +61,15 @@ public:
     Q_INVOKABLE void sendText(const QString &text);
     Q_INVOKABLE void deleteMessage(const QString &id);
     Q_INVOKABLE void react(const QString &messageId, const QString &emoji);
+    Q_INVOKABLE void setReplyTo(const QString &messageId);
+    Q_INVOKABLE void clearReply();
+
+    QString replyText() const { return m_replyText; }
+    QString replySenderName() const { return m_replySenderName; }
+    bool hasReply() const { return !m_replyId.isEmpty(); }
+
+Q_SIGNALS:
+    void replyChanged();
 
 private Q_SLOTS:
     void onMessagesReceived(const QJsonArray &messages);
@@ -72,4 +87,8 @@ private:
     IpcClient *m_ipc;
     QString m_chatJid;
     QList<MessageItem> m_messages;
+    QString m_replyId;
+    QString m_replySender;
+    QString m_replyText;
+    QString m_replySenderName;
 };

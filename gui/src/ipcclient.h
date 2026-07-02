@@ -27,7 +27,7 @@ public:
     Q_INVOKABLE void logout();
     Q_INVOKABLE void requestChats();
     Q_INVOKABLE void requestMessages(const QString &chatJid, int limit = 50);
-    Q_INVOKABLE void sendText(const QString &chatJid, const QString &text);
+    Q_INVOKABLE void sendText(const QString &chatJid, const QString &text, const QString &quotedId = QString(), const QString &quotedSender = QString(), const QString &quotedText = QString());
     Q_INVOKABLE void setTyping(const QString &chatJid, bool composing);
     Q_INVOKABLE void subscribePresence(const QString &jid);
     Q_INVOKABLE void deleteMessage(const QString &chatJid, const QString &id);

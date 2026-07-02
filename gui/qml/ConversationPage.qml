@@ -69,26 +69,67 @@ Kirigami.ScrollablePage {
     }
 
     footer: QQC2.ToolBar {
-        RowLayout {
-            anchors.fill: parent
-            QQC2.TextField {
-                id: input
+        contentItem: ColumnLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            RowLayout {
                 Layout.fillWidth: true
-                placeholderText: "Type a message"
-                onTextEdited: {
-                    if (text.length > 0) {
-                        page.startTyping()
-                    } else {
-                        page.stopTyping()
+                visible: MessageModel.hasReply
+                spacing: Kirigami.Units.smallSpacing
+
+                Rectangle {
+                    Layout.preferredWidth: 3
+                    Layout.preferredHeight: replyInfo.implicitHeight
+                    radius: 1
+                    color: Kirigami.Theme.highlightColor
+                }
+                ColumnLayout {
+                    id: replyInfo
+                    Layout.fillWidth: true
+                    spacing: 0
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        visible: text.length > 0
+                        text: MessageModel.replySenderName
+                        font.bold: true
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        elide: Text.ElideRight
+                        color: Kirigami.Theme.highlightColor
+                    }
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        text: MessageModel.replyText
+                        opacity: 0.8
+                        elide: Text.ElideRight
                     }
                 }
-                onAccepted: page.sendCurrent()
+                QQC2.ToolButton {
+                    icon.name: "dialog-close"
+                    onClicked: MessageModel.clearReply()
+                }
             }
-            QQC2.Button {
-                text: "Send"
-                icon.name: "document-send"
-                enabled: input.text.trim().length > 0
-                onClicked: page.sendCurrent()
+
+            RowLayout {
+                Layout.fillWidth: true
+                QQC2.TextField {
+                    id: input
+                    Layout.fillWidth: true
+                    placeholderText: "Type a message"
+                    onTextEdited: {
+                        if (text.length > 0) {
+                            page.startTyping()
+                        } else {
+                            page.stopTyping()
+                        }
+                    }
+                    onAccepted: page.sendCurrent()
+                }
+                QQC2.Button {
+                    text: "Send"
+                    icon.name: "document-send"
+                    enabled: input.text.trim().length > 0
+                    onClicked: page.sendCurrent()
+                }
             }
         }
     }
@@ -136,6 +177,7 @@ Kirigami.ScrollablePage {
             required property string status
             required property string senderName
             required property string reactions
+            required property string quotedText
 
             width: messages.width
             implicitHeight: bubble.height
@@ -158,6 +200,8 @@ Kirigami.ScrollablePage {
                         w = Math.max(w, mediaImage.width)
                     if (row.reactions.length > 0)
                         w = Math.max(w, reactionsLabel.implicitWidth)
+                    if (row.quotedText.length > 0)
+                        w = Math.max(w, quoteLabel.width)
                     return w
                 }
 
@@ -193,6 +237,12 @@ Kirigami.ScrollablePage {
                         QQC2.MenuItem { text: "Remove"; onTriggered: MessageModel.react(row.messageId, "") }
                     }
                     QQC2.MenuItem {
+                        text: "Reply"
+                        visible: row.type !== "revoked"
+                        height: visible ? implicitHeight : 0
+                        onTriggered: MessageModel.setReplyTo(row.messageId)
+                    }
+                    QQC2.MenuItem {
                         text: "Copy"
                         visible: row.text.length > 0 && row.type !== "revoked"
                         height: visible ? implicitHeight : 0
@@ -222,6 +272,19 @@ Kirigami.ScrollablePage {
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                         elide: Text.ElideRight
                         color: page.senderColor(row.senderName)
+                    }
+
+                    QQC2.Label {
+                        id: quoteLabel
+                        visible: row.quotedText.length > 0
+                        width: Math.min(implicitWidth, bubble.maxContent)
+                        leftPadding: Kirigami.Units.smallSpacing
+                        text: row.quotedText
+                        elide: Text.ElideRight
+                        opacity: 0.7
+                        font.italic: true
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                     }
 
                     Image {

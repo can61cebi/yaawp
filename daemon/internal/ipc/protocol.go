@@ -75,8 +75,11 @@ func NewEvent(name string, data interface{}) Event {
 // ---- Parameter and data payloads ----
 
 type SendTextParams struct {
-	ChatJID string `json:"chat_jid"`
-	Text    string `json:"text"`
+	ChatJID      string `json:"chat_jid"`
+	Text         string `json:"text"`
+	QuotedID     string `json:"quoted_id,omitempty"`
+	QuotedSender string `json:"quoted_sender,omitempty"`
+	QuotedText   string `json:"quoted_text,omitempty"`
 }
 
 type ListMessagesParams struct {
@@ -134,6 +137,10 @@ type Message struct {
 	MediaPath string `json:"media_path,omitempty"` // local cache path for downloaded media
 
 	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
+
+	QuotedID     string `json:"quoted_id,omitempty"`
+	QuotedSender string `json:"quoted_sender,omitempty"`
+	QuotedText   string `json:"quoted_text,omitempty"`
 }
 
 // Backend is implemented by the engine. The IPC server dispatches commands to

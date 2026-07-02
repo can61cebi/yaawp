@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS messages (
     text       TEXT NOT NULL DEFAULT '',
     status     TEXT NOT NULL DEFAULT '',
     media_path TEXT NOT NULL DEFAULT '',
+    quoted_id     TEXT NOT NULL DEFAULT '',
+    quoted_sender TEXT NOT NULL DEFAULT '',
+    quoted_text   TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (chat_jid, id)
 );
 CREATE INDEX IF NOT EXISTS idx_messages_chat_ts ON messages (chat_jid, ts);
@@ -48,7 +51,8 @@ CREATE TABLE IF NOT EXISTS reactions (
 `
 
 const insertMessageSQL = `INSERT OR IGNORE INTO messages
-    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, quoted_id, quoted_sender, quoted_text)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 // updateChatSQL advances a chat summary only when the incoming message is at
 // least as recent as the stored one.
@@ -83,6 +87,9 @@ func OpenDB() (*DB, error) {
 func (d *DB) migrate() {
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT ''`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_path TEXT NOT NULL DEFAULT ''`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_id TEXT NOT NULL DEFAULT ''`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_sender TEXT NOT NULL DEFAULT ''`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_text TEXT NOT NULL DEFAULT ''`)
 }
 
 // Close releases the database handle.
@@ -118,7 +125,7 @@ func (d *DB) PutMessages(msgs []ipc.Message) error {
 	defer func() { _ = upChat.Close() }()
 
 	for _, m := range msgs {
-		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath); err != nil {
+		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
 			return err
 		}
 		if _, err := upChat.Exec(m.ChatJID, m.Timestamp, m.Text); err != nil {
@@ -237,7 +244,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 		limit = 50
 	}
 	rows, err := d.sql.Query(
-		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path
+		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, quoted_id, quoted_sender, quoted_text
 		 FROM messages WHERE chat_jid = ? ORDER BY ts DESC LIMIT ?`,
 		chatJID, limit)
 	if err != nil {
@@ -249,7 +256,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 	for rows.Next() {
 		var m ipc.Message
 		var fromMe int
-		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath); err != nil {
+		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
 			return nil, err
 		}
 		m.FromMe = fromMe != 0
