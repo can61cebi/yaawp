@@ -52,6 +52,10 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         return m.status;
     case MediaPathRole:
         return m.mediaPath;
+    case MediaWidthRole:
+        return m.mediaWidth;
+    case MediaHeightRole:
+        return m.mediaHeight;
     case ReactionsRole: {
         QStringList distinct;
         for (const QString &emoji : m.reactions) {
@@ -92,6 +96,8 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {DaySeparatorRole, "daySeparator"},
         {StatusRole, "status"},
         {MediaPathRole, "mediaPath"},
+        {MediaWidthRole, "mediaWidth"},
+        {MediaHeightRole, "mediaHeight"},
         {ReactionsRole, "reactions"},
         {QuotedTextRole, "quotedText"},
     };
@@ -165,6 +171,27 @@ void MessageModel::clearReply()
     Q_EMIT replyChanged();
 }
 
+QString MessageModel::messageIdAt(int index) const
+{
+    if (index >= 0 && index < m_messages.size()) {
+        return m_messages.at(index).id;
+    }
+    return QString();
+}
+
+int MessageModel::indexOfMessage(const QString &id) const
+{
+    if (id.isEmpty()) {
+        return -1;
+    }
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages.at(i).id == id) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void MessageModel::deleteMessage(const QString &id)
 {
     if (!id.isEmpty()) {
@@ -194,6 +221,8 @@ MessageItem MessageModel::fromJson(const QJsonObject &o) const
     item.type = o.value(QStringLiteral("type")).toString();
     item.status = o.value(QStringLiteral("status")).toString();
     item.mediaPath = o.value(QStringLiteral("media_path")).toString();
+    item.mediaWidth = o.value(QStringLiteral("media_w")).toInt();
+    item.mediaHeight = o.value(QStringLiteral("media_h")).toInt();
     item.quotedText = o.value(QStringLiteral("quoted_text")).toString();
     item.quotedSender = o.value(QStringLiteral("quoted_sender")).toString();
     const QJsonObject reacts = o.value(QStringLiteral("reactions")).toObject();

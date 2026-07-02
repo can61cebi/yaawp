@@ -41,13 +41,11 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    // Show a secondary page, first removing any existing one so the stack stays
-    // exactly two deep (chat list plus one secondary page).
-    function goSecondary(component, props) {
+    // Remove any secondary page so the stack is just the chat list again.
+    function clearSecondary() {
         while (pageStack.depth > 1) {
             pageStack.pop()
         }
-        return pageStack.push(component, props)
     }
 
     function showConversation(jid, name) {
@@ -57,9 +55,12 @@ Kirigami.ApplicationWindow {
         if (conversationPage) {
             conversationPage.saveScrollNow()
         }
+        // Remove the current secondary page before resetting the model, so its
+        // list view is not torn down against an emptied model.
+        clearSecondary()
         MessageModel.setChat(jid)
         Controller.currentChatJid = jid
-        conversationPage = goSecondary(conversationComponent, { chatTitle: name, chatJid: jid })
+        conversationPage = pageStack.push(conversationComponent, { chatTitle: name, chatJid: jid })
         currentSecondary = "conversation"
     }
 
@@ -71,7 +72,8 @@ Kirigami.ApplicationWindow {
             conversationPage.saveScrollNow()
             conversationPage = null
         }
-        goSecondary(settingsComponent, {})
+        clearSecondary()
+        pageStack.push(settingsComponent, {})
         currentSecondary = "settings"
     }
 

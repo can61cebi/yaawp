@@ -5,6 +5,10 @@ package engine
 import (
 	"context"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"log"
 	"net/http"
 	"os"
@@ -296,7 +300,32 @@ func (e *Engine) ListMessages(p ipc.ListMessagesParams) (interface{}, error) {
 			}
 		}
 	}
+	// Backfill pixel dimensions for cached images stored before dimensions were
+	// recorded, so the GUI can reserve their layout space.
+	for i := range msgs {
+		if msgs[i].Type == "image" && msgs[i].MediaWidth == 0 && msgs[i].MediaPath != "" {
+			if w, h := imageDimensions(msgs[i].MediaPath); w > 0 {
+				msgs[i].MediaWidth = w
+				msgs[i].MediaHeight = h
+				_ = e.db.UpdateMediaDimensions(msgs[i].ChatJID, msgs[i].ID, w, h)
+			}
+		}
+	}
 	return msgs, nil
+}
+
+// imageDimensions reads the pixel size of a local image without decoding it fully.
+func imageDimensions(path string) (int, int) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, 0
+	}
+	defer func() { _ = f.Close() }()
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return 0, 0
+	}
+	return cfg.Width, cfg.Height
 }
 
 func (e *Engine) SendText(p ipc.SendTextParams) (interface{}, error) {

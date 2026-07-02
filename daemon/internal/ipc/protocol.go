@@ -140,8 +140,10 @@ type Message struct {
 	Timestamp int64  `json:"timestamp"`
 	Type      string `json:"type"` // text, image, audio, and so on
 	Text      string `json:"text,omitempty"`
-	Status    string `json:"status,omitempty"`     // sent, delivered, read (outgoing only)
-	MediaPath string `json:"media_path,omitempty"` // local cache path for downloaded media
+	Status      string `json:"status,omitempty"`     // sent, delivered, read (outgoing only)
+	MediaPath   string `json:"media_path,omitempty"` // local cache path for downloaded media
+	MediaWidth  int    `json:"media_w,omitempty"`    // media pixel dimensions, to reserve layout space
+	MediaHeight int    `json:"media_h,omitempty"`
 
 	Reactions map[string]string `json:"reactions,omitempty"` // sender jid -> emoji
 

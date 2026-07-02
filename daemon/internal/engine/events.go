@@ -182,6 +182,7 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 		status = "sent"
 	}
 	qid, qsender, qtext := e.extractQuote(evt.Message)
+	mw, mh := mediaDimensions(evt.Message)
 	return ipc.Message{
 		ID:           evt.Info.ID,
 		ChatJID:      e.canonicalJID(evt.Info.Chat.String()),
@@ -195,6 +196,8 @@ func (e *Engine) messageToIPC(evt *events.Message) (ipc.Message, bool) {
 		QuotedID:     qid,
 		QuotedSender: qsender,
 		QuotedText:   qtext,
+		MediaWidth:   mw,
+		MediaHeight:  mh,
 	}, true
 }
 
@@ -231,6 +234,7 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 		status = "sent"
 	}
 	qid, qsender, qtext := e.extractQuote(wmi.GetMessage())
+	mw, mh := mediaDimensions(wmi.GetMessage())
 	return ipc.Message{
 		ID:           key.GetID(),
 		ChatJID:      chatJID,
@@ -243,7 +247,27 @@ func (e *Engine) webMsgToIPC(chatJID string, wmi *waWeb.WebMessageInfo) (ipc.Mes
 		QuotedID:     qid,
 		QuotedSender: qsender,
 		QuotedText:   qtext,
+		MediaWidth:   mw,
+		MediaHeight:  mh,
 	}, true
+}
+
+// mediaDimensions returns the pixel width and height of an image, sticker, or
+// video message so the GUI can reserve layout space before the file loads.
+func mediaDimensions(m *waE2E.Message) (int, int) {
+	if m == nil {
+		return 0, 0
+	}
+	if img := m.GetImageMessage(); img != nil {
+		return int(img.GetWidth()), int(img.GetHeight())
+	}
+	if st := m.GetStickerMessage(); st != nil {
+		return int(st.GetWidth()), int(st.GetHeight())
+	}
+	if vid := m.GetVideoMessage(); vid != nil {
+		return int(vid.GetWidth()), int(vid.GetHeight())
+	}
+	return 0, 0
 }
 
 // senderFromKey derives the sender JID from a message key. Group messages carry

@@ -21,6 +21,8 @@ struct MessageItem {
     QString type;
     QString status;
     QString mediaPath;
+    int mediaWidth = 0;
+    int mediaHeight = 0;
     QString quotedText;
     QString quotedSender;
     QMap<QString, QString> reactions; // sender jid -> emoji
@@ -49,6 +51,8 @@ public:
         DaySeparatorRole,
         StatusRole,
         MediaPathRole,
+        MediaWidthRole,
+        MediaHeightRole,
         ReactionsRole,
         QuotedTextRole,
     };
@@ -66,6 +70,8 @@ public:
     Q_INVOKABLE void react(const QString &messageId, const QString &emoji);
     Q_INVOKABLE void setReplyTo(const QString &messageId);
     Q_INVOKABLE void clearReply();
+    Q_INVOKABLE QString messageIdAt(int index) const;
+    Q_INVOKABLE int indexOfMessage(const QString &id) const;
 
     QString replyText() const { return m_replyText; }
     QString replySenderName() const { return m_replySenderName; }

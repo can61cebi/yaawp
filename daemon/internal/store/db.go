@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS messages (
     text       TEXT NOT NULL DEFAULT '',
     status     TEXT NOT NULL DEFAULT '',
     media_path TEXT NOT NULL DEFAULT '',
+    media_w    INTEGER NOT NULL DEFAULT 0,
+    media_h    INTEGER NOT NULL DEFAULT 0,
     quoted_id     TEXT NOT NULL DEFAULT '',
     quoted_sender TEXT NOT NULL DEFAULT '',
     quoted_text   TEXT NOT NULL DEFAULT '',
@@ -51,8 +53,8 @@ CREATE TABLE IF NOT EXISTS reactions (
 `
 
 const insertMessageSQL = `INSERT OR IGNORE INTO messages
-    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, quoted_id, quoted_sender, quoted_text)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, quoted_id, quoted_sender, quoted_text)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 // updateChatSQL advances a chat summary only when the incoming message is at
 // least as recent as the stored one.
@@ -90,6 +92,8 @@ func (d *DB) migrate() {
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_id TEXT NOT NULL DEFAULT ''`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_sender TEXT NOT NULL DEFAULT ''`)
 	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN quoted_text TEXT NOT NULL DEFAULT ''`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_w INTEGER NOT NULL DEFAULT 0`)
+	_, _ = d.sql.Exec(`ALTER TABLE messages ADD COLUMN media_h INTEGER NOT NULL DEFAULT 0`)
 }
 
 // Close releases the database handle.
@@ -125,7 +129,7 @@ func (d *DB) PutMessages(msgs []ipc.Message) error {
 	defer func() { _ = upChat.Close() }()
 
 	for _, m := range msgs {
-		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
+		if _, err := insMsg.Exec(m.ID, m.ChatJID, m.SenderJID, boolToInt(m.FromMe), m.Timestamp, m.Type, m.Text, m.Status, m.MediaPath, m.MediaWidth, m.MediaHeight, m.QuotedID, m.QuotedSender, m.QuotedText); err != nil {
 			return err
 		}
 		if _, err := upChat.Exec(m.ChatJID, m.Timestamp, m.Text); err != nil {
@@ -204,6 +208,12 @@ func (d *DB) UpdateMediaPath(chatJID, id, path string) error {
 	return err
 }
 
+// UpdateMediaDimensions records the pixel size of a media message.
+func (d *DB) UpdateMediaDimensions(chatJID, id string, w, h int) error {
+	_, err := d.sql.Exec(`UPDATE messages SET media_w = ?, media_h = ? WHERE chat_jid = ? AND id = ?`, w, h, chatJID, id)
+	return err
+}
+
 // SetChatName sets the display name and group flag for a chat.
 func (d *DB) SetChatName(jid, name string, isGroup bool) error {
 	_, err := d.sql.Exec(
@@ -244,7 +254,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 		limit = 50
 	}
 	rows, err := d.sql.Query(
-		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, quoted_id, quoted_sender, quoted_text
+		`SELECT id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, quoted_id, quoted_sender, quoted_text
 		 FROM messages WHERE chat_jid = ? ORDER BY ts DESC LIMIT ?`,
 		chatJID, limit)
 	if err != nil {
@@ -256,7 +266,7 @@ func (d *DB) ListMessages(chatJID string, limit int) ([]ipc.Message, error) {
 	for rows.Next() {
 		var m ipc.Message
 		var fromMe int
-		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
+		if err := rows.Scan(&m.ID, &m.ChatJID, &m.SenderJID, &fromMe, &m.Timestamp, &m.Type, &m.Text, &m.Status, &m.MediaPath, &m.MediaWidth, &m.MediaHeight, &m.QuotedID, &m.QuotedSender, &m.QuotedText); err != nil {
 			return nil, err
 		}
 		m.FromMe = fromMe != 0

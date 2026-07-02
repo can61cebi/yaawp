@@ -57,13 +57,14 @@ Kirigami.Page {
             return
         }
         const idx = messages.indexAt(Kirigami.Units.largeSpacing, messages.contentY + Kirigami.Units.largeSpacing)
-        Controller.saveScroll(page.chatJid, idx)
+        Controller.saveScroll(page.chatJid, idx >= 0 ? MessageModel.messageIdAt(idx) : "")
     }
 
     function positionInitially() {
         if (Settings.rememberScroll) {
-            const idx = Controller.savedScroll(page.chatJid)
-            if (idx >= 0 && idx < messages.count) {
+            const id = Controller.savedScroll(page.chatJid)
+            const idx = id.length > 0 ? MessageModel.indexOfMessage(id) : -1
+            if (idx >= 0) {
                 messages.positionViewAtIndex(idx, ListView.Beginning)
             }
         }
@@ -210,6 +211,8 @@ Kirigami.Page {
             required property string text
             required property string type
             required property string mediaPath
+            required property int mediaWidth
+            required property int mediaHeight
             required property var timestamp
             required property string status
             required property string senderName
@@ -360,13 +363,18 @@ Kirigami.Page {
                             Image {
                                 id: mediaImage
                                 readonly property real maxW: messages.width * 0.6
+                                // Use the dimensions from the daemon so the height
+                                // is reserved before the file loads. This keeps the
+                                // layout stable and scroll positions accurate.
+                                readonly property real natW: row.mediaWidth > 0 ? row.mediaWidth : implicitWidth
+                                readonly property real natH: row.mediaHeight > 0 ? row.mediaHeight : implicitHeight
                                 visible: bubble.hasMedia
                                 source: bubble.hasMedia ? ("file://" + row.mediaPath) : ""
                                 fillMode: Image.PreserveAspectFit
                                 asynchronous: true
                                 sourceSize.width: maxW
-                                width: (implicitWidth > 0) ? Math.min(implicitWidth, maxW) : maxW
-                                height: (implicitWidth > 0) ? width * (implicitHeight / implicitWidth) : 0
+                                width: natW > 0 ? Math.min(natW, maxW) : maxW
+                                height: natW > 0 ? width * (natH / natW) : maxW * 0.6
                             }
 
                             QQC2.Label {
@@ -450,10 +458,11 @@ Kirigami.Page {
         anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
         anchors.bottomMargin: Kirigami.Units.largeSpacing
         focusPolicy: Qt.NoFocus
-        // Distance from the newest message. Show only after scrolling up about
-        // half a screen so it never covers the latest messages.
-        visible: messages.contentHeight > messages.height
-                 && (messages.contentHeight - messages.contentY - messages.height) > messages.height * 0.5
+        // Show only when the newest messages are scrolled out of view. Using the
+        // item index at the bottom edge avoids the contentY ambiguity of a
+        // bottom-up list, and is stable now that image heights are reserved.
+        visible: messages.count > 5
+                 && messages.indexAt(messages.width / 2, messages.contentY + messages.height - 2) > 4
         icon.name: "go-down-symbolic"
         onClicked: messages.positionViewAtBeginning()
     }
