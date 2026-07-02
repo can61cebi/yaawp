@@ -11,7 +11,6 @@ Kirigami.Page {
     property string chatJid: ""
     property bool typingActive: false
     property bool restored: false
-    property bool followBottom: true
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
     title: chatTitle
@@ -51,31 +50,30 @@ Kirigami.Page {
         return Qt.hsla(hash / 360, 0.55, 0.6, 1)
     }
 
-    function positionInitially() {
-        if (Settings.rememberScroll) {
-            var y = Controller.savedScroll(page.chatJid)
-            if (y >= 0) {
-                messages.contentY = Math.min(y, Math.max(0, messages.contentHeight - messages.height))
-                page.followBottom = false
-                return
-            }
+    // Scroll memory is index based: it survives the image loads that change
+    // pixel heights, which is why a contentY based approach failed.
+    function saveScrollNow() {
+        if (!Settings.rememberScroll || page.chatJid.length === 0) {
+            return
         }
-        messages.positionViewAtEnd()
-        page.followBottom = true
+        const idx = messages.indexAt(Kirigami.Units.largeSpacing, messages.contentY + Kirigami.Units.largeSpacing)
+        Controller.saveScroll(page.chatJid, idx)
     }
 
-    function saveScrollNow() {
-        if (Settings.rememberScroll && page.chatJid.length > 0) {
-            Controller.saveScroll(page.chatJid, messages.contentY)
+    function positionInitially() {
+        if (Settings.rememberScroll) {
+            const idx = Controller.savedScroll(page.chatJid)
+            if (idx >= 0 && idx < messages.count) {
+                messages.positionViewAtIndex(idx, ListView.Beginning)
+            }
         }
+        // Otherwise the bottom-up view already shows the newest message.
     }
 
     Component.onDestruction: {
         page.stopTyping()
-        // Save only when this page is still the current chat (a plain back or
-        // window close). During a chat switch the scroll is saved explicitly
-        // before the model changes, so skip here to avoid overwriting it with
-        // the next chat's position.
+        // Only save on a plain back or close; a chat switch saves explicitly
+        // before the model changes.
         if (page.chatJid.length > 0 && page.chatJid === Controller.currentChatJid) {
             page.saveScrollNow()
         }
@@ -188,10 +186,11 @@ Kirigami.Page {
         model: MessageModel
         spacing: Kirigami.Units.smallSpacing
         topMargin: Kirigami.Units.smallSpacing
-        bottomMargin: Kirigami.Units.gridUnit
+        bottomMargin: Kirigami.Units.largeSpacing
         cacheBuffer: 800
-        // Stop exactly at the content edges, like Kirigami's own lists, so the
-        // view cannot be dragged past the last message and does not bounce back.
+        // Newest at the bottom, anchored there automatically. This is the
+        // pattern KDE NeoChat uses for its timeline.
+        verticalLayoutDirection: ListView.BottomToTop
         boundsBehavior: Flickable.StopAtBounds
 
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
@@ -200,39 +199,6 @@ Kirigami.Page {
             if (!page.restored && count > 0) {
                 page.restored = true
                 Qt.callLater(page.positionInitially)
-            } else if (page.followBottom) {
-                Qt.callLater(messages.positionViewAtEnd)
-            }
-        }
-        onContentHeightChanged: {
-            if (page.followBottom) {
-                messages.positionViewAtEnd()
-            }
-        }
-        onMovementEnded: page.followBottom = messages.atYEnd
-        onFlickEnded: page.followBottom = messages.atYEnd
-
-        section.property: "day"
-        section.criteria: ViewSection.FullString
-        section.delegate: Item {
-            width: ListView.view.width
-            height: chip.height + Kirigami.Units.largeSpacing
-
-            Rectangle {
-                id: chip
-                anchors.centerIn: parent
-                radius: height / 2
-                color: Kirigami.Theme.alternateBackgroundColor
-                width: chipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
-                height: chipLabel.implicitHeight + Kirigami.Units.smallSpacing
-
-                QQC2.Label {
-                    id: chipLabel
-                    anchors.centerIn: parent
-                    text: section
-                    font: Kirigami.Theme.smallFont
-                    opacity: 0.8
-                }
             }
         }
 
@@ -249,192 +215,226 @@ Kirigami.Page {
             required property string senderName
             required property string reactions
             required property string quotedText
+            required property string daySeparator
 
             width: messages.width
-            implicitHeight: bubble.height
+            implicitHeight: dcol.height
 
-            Rectangle {
-                id: bubble
+            Column {
+                id: dcol
+                width: parent.width
+                spacing: 0
 
-                readonly property int hpad: Kirigami.Units.largeSpacing
-                readonly property int vpad: Kirigami.Units.smallSpacing + 2
-                readonly property bool showSender: page.isGroup && !row.fromMe && row.senderName.length > 0
-                readonly property bool hasMedia: (row.type === "image" || row.type === "sticker") && row.mediaPath.length > 0
-                readonly property real maxContent: messages.width * 0.72 - hpad * 2
-                readonly property real contentW: {
-                    var w = metaContent.implicitWidth
-                    if (textLabel.visible)
-                        w = Math.max(w, Math.min(textLabel.implicitWidth, maxContent))
-                    if (showSender)
-                        w = Math.max(w, Math.min(senderLabel.implicitWidth, maxContent))
-                    if (hasMedia)
-                        w = Math.max(w, mediaImage.width)
-                    if (row.reactions.length > 0)
-                        w = Math.max(w, reactionsLabel.implicitWidth)
-                    if (row.quotedText.length > 0)
-                        w = Math.max(w, quoteLabel.width)
-                    return w
-                }
+                Item {
+                    width: parent.width
+                    visible: row.daySeparator.length > 0
+                    height: visible ? daychip.height + Kirigami.Units.largeSpacing : 0
 
-                anchors.left: row.fromMe ? undefined : parent.left
-                anchors.right: row.fromMe ? parent.right : undefined
-                anchors.leftMargin: Kirigami.Units.largeSpacing
-                // Reserve a gutter on the right so bubbles clear the scrollbar.
-                anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
+                    Rectangle {
+                        id: daychip
+                        anchors.centerIn: parent
+                        radius: height / 2
+                        color: Kirigami.Theme.alternateBackgroundColor
+                        width: daychipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
+                        height: daychipLabel.implicitHeight + Kirigami.Units.smallSpacing
 
-                width: contentW + hpad * 2
-                height: content.height + vpad * 2
-                radius: Kirigami.Units.largeSpacing
-                color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
-
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    onTapped: contextMenu.popup()
-                }
-                TapHandler {
-                    acceptedDevices: PointerDevice.TouchScreen
-                    onLongPressed: contextMenu.popup()
-                }
-
-                QQC2.Menu {
-                    id: contextMenu
-                    QQC2.Menu {
-                        title: "React"
-                        QQC2.MenuItem { text: "\u{1F44D}"; onTriggered: MessageModel.react(row.messageId, text) }
-                        QQC2.MenuItem { text: "❤️"; onTriggered: MessageModel.react(row.messageId, text) }
-                        QQC2.MenuItem { text: "\u{1F602}"; onTriggered: MessageModel.react(row.messageId, text) }
-                        QQC2.MenuItem { text: "\u{1F62E}"; onTriggered: MessageModel.react(row.messageId, text) }
-                        QQC2.MenuItem { text: "\u{1F622}"; onTriggered: MessageModel.react(row.messageId, text) }
-                        QQC2.MenuItem { text: "\u{1F64F}"; onTriggered: MessageModel.react(row.messageId, text) }
-                        QQC2.MenuItem { text: "Remove"; onTriggered: MessageModel.react(row.messageId, "") }
-                    }
-                    QQC2.MenuItem {
-                        text: "Reply"
-                        visible: row.type !== "revoked"
-                        height: visible ? implicitHeight : 0
-                        onTriggered: MessageModel.setReplyTo(row.messageId)
-                    }
-                    QQC2.MenuItem {
-                        text: "Copy"
-                        visible: row.text.length > 0 && row.type !== "revoked"
-                        height: visible ? implicitHeight : 0
-                        onTriggered: Controller.copyToClipboard(row.text)
-                    }
-                    QQC2.MenuItem {
-                        text: "Delete for everyone"
-                        visible: row.fromMe && row.type !== "revoked"
-                        height: visible ? implicitHeight : 0
-                        onTriggered: MessageModel.deleteMessage(row.messageId)
+                        QQC2.Label {
+                            id: daychipLabel
+                            anchors.centerIn: parent
+                            text: row.daySeparator
+                            font: Kirigami.Theme.smallFont
+                            opacity: 0.8
+                        }
                     }
                 }
 
-                Column {
-                    id: content
-                    x: bubble.hpad
-                    y: bubble.vpad
-                    width: bubble.contentW
-                    spacing: Math.round(Kirigami.Units.smallSpacing / 2)
+                Item {
+                    width: parent.width
+                    height: bubble.height
 
-                    QQC2.Label {
-                        id: senderLabel
-                        visible: bubble.showSender
-                        width: parent.width
-                        text: row.senderName
-                        font.bold: true
-                        font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        elide: Text.ElideRight
-                        color: page.senderColor(row.senderName)
-                    }
+                    Rectangle {
+                        id: bubble
 
-                    QQC2.Label {
-                        id: quoteLabel
-                        visible: row.quotedText.length > 0
-                        width: Math.min(implicitWidth, bubble.maxContent)
-                        leftPadding: Kirigami.Units.smallSpacing
-                        text: row.quotedText
-                        elide: Text.ElideRight
-                        opacity: 0.7
-                        font.italic: true
-                        font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                    }
+                        readonly property int hpad: Kirigami.Units.largeSpacing
+                        readonly property int vpad: Kirigami.Units.smallSpacing + 2
+                        readonly property bool showSender: page.isGroup && !row.fromMe && row.senderName.length > 0
+                        readonly property bool hasMedia: (row.type === "image" || row.type === "sticker") && row.mediaPath.length > 0
+                        readonly property real maxContent: messages.width * 0.72 - hpad * 2
+                        readonly property real contentW: {
+                            var w = metaContent.implicitWidth
+                            if (textLabel.visible)
+                                w = Math.max(w, Math.min(textLabel.implicitWidth, maxContent))
+                            if (showSender)
+                                w = Math.max(w, Math.min(senderLabel.implicitWidth, maxContent))
+                            if (hasMedia)
+                                w = Math.max(w, mediaImage.width)
+                            if (row.reactions.length > 0)
+                                w = Math.max(w, reactionsLabel.implicitWidth)
+                            if (row.quotedText.length > 0)
+                                w = Math.max(w, quoteLabel.width)
+                            return w
+                        }
 
-                    Image {
-                        id: mediaImage
-                        readonly property real maxW: messages.width * 0.6
-                        visible: bubble.hasMedia
-                        source: bubble.hasMedia ? ("file://" + row.mediaPath) : ""
-                        fillMode: Image.PreserveAspectFit
-                        asynchronous: true
-                        sourceSize.width: maxW
-                        width: (implicitWidth > 0) ? Math.min(implicitWidth, maxW) : maxW
-                        height: (implicitWidth > 0) ? width * (implicitHeight / implicitWidth) : 0
-                    }
+                        anchors.left: row.fromMe ? undefined : parent.left
+                        anchors.right: row.fromMe ? parent.right : undefined
+                        anchors.leftMargin: Kirigami.Units.largeSpacing
+                        anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
 
-                    QQC2.Label {
-                        id: textLabel
-                        readonly property bool revoked: row.type === "revoked"
-                        visible: row.text.length > 0 || revoked
-                        width: parent.width
-                        text: revoked ? "This message was deleted" : row.text
-                        font.italic: revoked
-                        opacity: revoked ? 0.7 : 1.0
-                        textFormat: Text.PlainText
-                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                    }
+                        width: contentW + hpad * 2
+                        height: content.height + vpad * 2
+                        radius: Kirigami.Units.largeSpacing
+                        color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
 
-                    QQC2.Label {
-                        id: reactionsLabel
-                        visible: row.reactions.length > 0
-                        text: row.reactions
-                        font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                    }
+                        TapHandler {
+                            acceptedButtons: Qt.RightButton
+                            onTapped: contextMenu.popup()
+                        }
+                        TapHandler {
+                            acceptedDevices: PointerDevice.TouchScreen
+                            onLongPressed: contextMenu.popup()
+                        }
 
-                    Item {
-                        width: parent.width
-                        height: metaContent.height
+                        QQC2.Menu {
+                            id: contextMenu
+                            QQC2.Menu {
+                                title: "React"
+                                QQC2.MenuItem { text: "\u{1F44D}"; onTriggered: MessageModel.react(row.messageId, text) }
+                                QQC2.MenuItem { text: "❤️"; onTriggered: MessageModel.react(row.messageId, text) }
+                                QQC2.MenuItem { text: "\u{1F602}"; onTriggered: MessageModel.react(row.messageId, text) }
+                                QQC2.MenuItem { text: "\u{1F62E}"; onTriggered: MessageModel.react(row.messageId, text) }
+                                QQC2.MenuItem { text: "\u{1F622}"; onTriggered: MessageModel.react(row.messageId, text) }
+                                QQC2.MenuItem { text: "\u{1F64F}"; onTriggered: MessageModel.react(row.messageId, text) }
+                                QQC2.MenuItem { text: "Remove"; onTriggered: MessageModel.react(row.messageId, "") }
+                            }
+                            QQC2.MenuItem {
+                                text: "Reply"
+                                visible: row.type !== "revoked"
+                                height: visible ? implicitHeight : 0
+                                onTriggered: MessageModel.setReplyTo(row.messageId)
+                            }
+                            QQC2.MenuItem {
+                                text: "Copy"
+                                visible: row.text.length > 0 && row.type !== "revoked"
+                                height: visible ? implicitHeight : 0
+                                onTriggered: Controller.copyToClipboard(row.text)
+                            }
+                            QQC2.MenuItem {
+                                text: "Delete for everyone"
+                                visible: row.fromMe && row.type !== "revoked"
+                                height: visible ? implicitHeight : 0
+                                onTriggered: MessageModel.deleteMessage(row.messageId)
+                            }
+                        }
 
-                        Row {
-                            id: metaContent
-                            anchors.right: parent.right
-                            spacing: Kirigami.Units.smallSpacing
+                        Column {
+                            id: content
+                            x: bubble.hpad
+                            y: bubble.vpad
+                            width: bubble.contentW
+                            spacing: Math.round(Kirigami.Units.smallSpacing / 2)
 
                             QQC2.Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
-                                font: Kirigami.Theme.smallFont
+                                id: senderLabel
+                                visible: bubble.showSender
+                                width: parent.width
+                                text: row.senderName
+                                font.bold: true
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                elide: Text.ElideRight
+                                color: page.senderColor(row.senderName)
+                            }
+
+                            QQC2.Label {
+                                id: quoteLabel
+                                visible: row.quotedText.length > 0
+                                width: Math.min(implicitWidth, bubble.maxContent)
+                                leftPadding: Kirigami.Units.smallSpacing
+                                text: row.quotedText
+                                elide: Text.ElideRight
                                 opacity: 0.7
+                                font.italic: true
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                            }
+
+                            Image {
+                                id: mediaImage
+                                readonly property real maxW: messages.width * 0.6
+                                visible: bubble.hasMedia
+                                source: bubble.hasMedia ? ("file://" + row.mediaPath) : ""
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                                sourceSize.width: maxW
+                                width: (implicitWidth > 0) ? Math.min(implicitWidth, maxW) : maxW
+                                height: (implicitWidth > 0) ? width * (implicitHeight / implicitWidth) : 0
+                            }
+
+                            QQC2.Label {
+                                id: textLabel
+                                readonly property bool revoked: row.type === "revoked"
+                                visible: row.text.length > 0 || revoked
+                                width: parent.width
+                                text: revoked ? "This message was deleted" : row.text
+                                font.italic: revoked
+                                opacity: revoked ? 0.7 : 1.0
+                                textFormat: Text.PlainText
+                                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                            }
+
+                            QQC2.Label {
+                                id: reactionsLabel
+                                visible: row.reactions.length > 0
+                                text: row.reactions
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
                                 color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
                             }
 
                             Item {
-                                id: ticks
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: row.fromMe && row.status.length > 0
-                                readonly property real tw: Kirigami.Units.iconSizes.small
-                                readonly property color tc: row.status === "read" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightedTextColor
-                                readonly property real op: row.status === "read" ? 1.0 : 0.75
-                                width: row.status === "sent" ? tw : tw * 1.5
-                                height: tw
+                                width: parent.width
+                                height: metaContent.height
 
-                                Kirigami.Icon {
-                                    source: "checkmark"
-                                    width: ticks.tw
-                                    height: ticks.tw
-                                    x: ticks.width - ticks.tw
-                                    color: ticks.tc
-                                    opacity: ticks.op
-                                }
-                                Kirigami.Icon {
-                                    visible: row.status !== "sent"
-                                    source: "checkmark"
-                                    width: ticks.tw
-                                    height: ticks.tw
-                                    x: 0
-                                    color: ticks.tc
-                                    opacity: ticks.op
+                                Row {
+                                    id: metaContent
+                                    anchors.right: parent.right
+                                    spacing: Kirigami.Units.smallSpacing
+
+                                    QQC2.Label {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
+                                        font: Kirigami.Theme.smallFont
+                                        opacity: 0.7
+                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                    }
+
+                                    Item {
+                                        id: ticks
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: row.fromMe && row.status.length > 0
+                                        readonly property real tw: Kirigami.Units.iconSizes.small
+                                        readonly property color tc: row.status === "read" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightedTextColor
+                                        readonly property real op: row.status === "read" ? 1.0 : 0.75
+                                        width: row.status === "sent" ? tw : tw * 1.5
+                                        height: tw
+
+                                        Kirigami.Icon {
+                                            source: "checkmark"
+                                            width: ticks.tw
+                                            height: ticks.tw
+                                            x: ticks.width - ticks.tw
+                                            color: ticks.tc
+                                            opacity: ticks.op
+                                        }
+                                        Kirigami.Icon {
+                                            visible: row.status !== "sent"
+                                            source: "checkmark"
+                                            width: ticks.tw
+                                            height: ticks.tw
+                                            x: 0
+                                            color: ticks.tc
+                                            opacity: ticks.op
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -449,14 +449,12 @@ Kirigami.Page {
         anchors.bottom: parent.bottom
         anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
         anchors.bottomMargin: Kirigami.Units.largeSpacing
-        // Only show after scrolling up about half a screen, so it never covers
-        // the newest messages near the bottom.
+        focusPolicy: Qt.NoFocus
+        // Distance from the newest message. Show only after scrolling up about
+        // half a screen so it never covers the latest messages.
         visible: messages.contentHeight > messages.height
                  && (messages.contentHeight - messages.contentY - messages.height) > messages.height * 0.5
         icon.name: "go-down-symbolic"
-        onClicked: {
-            messages.positionViewAtEnd()
-            page.followBottom = true
-        }
+        onClicked: messages.positionViewAtBeginning()
     }
 }

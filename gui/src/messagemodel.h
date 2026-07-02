@@ -46,6 +46,7 @@ public:
         TextRole,
         TypeRole,
         DayRole,
+        DaySeparatorRole,
         StatusRole,
         MediaPathRole,
         ReactionsRole,
@@ -83,6 +84,8 @@ private Q_SLOTS:
 
 private:
     void append(const MessageItem &item);
+    void prepend(const MessageItem &item);
+    bool renderable(const MessageItem &item) const;
     MessageItem fromJson(const QJsonObject &o) const;
     QString dayLabel(qint64 timestamp) const;
 

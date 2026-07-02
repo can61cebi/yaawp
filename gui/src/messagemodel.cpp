@@ -63,6 +63,16 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     }
     case QuotedTextRole:
         return m.quotedText;
+    case DaySeparatorRole: {
+        // Newest first: the older neighbour is at row + 1. Show the day label
+        // above the oldest message of each day.
+        const int r = index.row();
+        if (r + 1 >= m_messages.size()
+            || dayLabel(m.timestamp) != dayLabel(m_messages.at(r + 1).timestamp)) {
+            return dayLabel(m.timestamp);
+        }
+        return QString();
+    }
     default:
         return {};
     }
@@ -79,6 +89,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const
         {TextRole, "text"},
         {TypeRole, "type"},
         {DayRole, "day"},
+        {DaySeparatorRole, "daySeparator"},
         {StatusRole, "status"},
         {MediaPathRole, "mediaPath"},
         {ReactionsRole, "reactions"},
@@ -114,7 +125,7 @@ void MessageModel::sendText(const QString &text)
     item.quotedText = m_replyText;
     item.quotedSender = m_replySender;
     item.pending = true;
-    append(item);
+    prepend(item);
 
     clearReply();
 }
@@ -216,22 +227,19 @@ void MessageModel::onMessagesReceived(const QJsonArray &messages)
     }
     beginResetModel();
     m_messages.clear();
-    for (const QJsonValue &value : messages) {
-        const MessageItem item = fromJson(value.toObject());
-        if (item.text.isEmpty()) {
-            continue; // skip messages with no renderable text
+    QStringList unread;
+    // The daemon returns oldest first; store newest first for a bottom-up view.
+    for (int i = messages.size() - 1; i >= 0; --i) {
+        const MessageItem item = fromJson(messages.at(i).toObject());
+        if (!renderable(item)) {
+            continue;
         }
         m_messages.append(item);
-    }
-    endResetModel();
-
-    // Mark the incoming messages in this history batch as read.
-    QStringList unread;
-    for (const MessageItem &m : m_messages) {
-        if (!m.fromMe && !m.id.isEmpty()) {
-            unread.append(m.id);
+        if (!item.fromMe && !item.id.isEmpty()) {
+            unread.append(item.id);
         }
     }
+    endResetModel();
     m_ipc->markRead(m_chatJid, unread);
 }
 
@@ -243,19 +251,32 @@ void MessageModel::append(const MessageItem &item)
     endInsertRows();
 }
 
+void MessageModel::prepend(const MessageItem &item)
+{
+    beginInsertRows({}, 0, 0);
+    m_messages.prepend(item);
+    endInsertRows();
+}
+
+bool MessageModel::renderable(const MessageItem &item) const
+{
+    return !item.text.isEmpty() || !item.mediaPath.isEmpty()
+        || item.type == QStringLiteral("revoked");
+}
+
 void MessageModel::onMessageReceived(const QJsonObject &message)
 {
     if (message.value(QStringLiteral("chat_jid")).toString() != m_chatJid) {
         return;
     }
     MessageItem item = fromJson(message);
-    if (item.text.isEmpty()) {
+    if (!renderable(item)) {
         return;
     }
 
-    // Reconcile with a pending local echo of an outgoing message.
+    // Reconcile with a pending local echo of an outgoing message (near the front).
     if (item.fromMe) {
-        for (int i = m_messages.size() - 1; i >= 0; --i) {
+        for (int i = 0; i < m_messages.size(); ++i) {
             if (m_messages.at(i).pending && m_messages.at(i).fromMe
                 && m_messages.at(i).text == item.text) {
                 item.pending = false;
@@ -267,7 +288,7 @@ void MessageModel::onMessageReceived(const QJsonObject &message)
         }
     }
 
-    append(item);
+    prepend(item);
 
     // The chat is open, so mark an incoming message as read right away.
     if (!item.fromMe && !item.id.isEmpty()) {

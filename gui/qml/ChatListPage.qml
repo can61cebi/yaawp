@@ -55,7 +55,9 @@ Kirigami.Page {
 
             delegate: QQC2.ItemDelegate {
                 id: item
-                width: ListView.view.width
+                // Leave a gutter on the right so the hover highlight does not
+                // slide under the scrollbar.
+                width: ListView.view.width - Kirigami.Units.gridUnit
 
                 required property string jid
                 required property string name
