@@ -29,8 +29,8 @@ public:
     void setCurrentChatJid(const QString &jid);
 
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
-    Q_INVOKABLE void saveScroll(const QString &jid, const QString &messageId);
-    Q_INVOKABLE QString savedScroll(const QString &jid) const;
+    Q_INVOKABLE void saveScroll(const QString &jid, double contentY);
+    Q_INVOKABLE double savedScroll(const QString &jid) const;
 
 Q_SIGNALS:
     void connectionStateChanged();
@@ -57,5 +57,5 @@ private:
     bool m_typing = false;
     bool m_online = false;
     qint64 m_lastSeen = 0;
-    QHash<QString, QString> m_scroll; // chat jid -> top visible message id
+    QHash<QString, double> m_scroll; // chat jid -> saved content y offset
 };

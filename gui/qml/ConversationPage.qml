@@ -56,16 +56,18 @@ Kirigami.Page {
         if (!Settings.rememberScroll || page.chatJid.length === 0) {
             return
         }
-        const idx = messages.indexAt(Kirigami.Units.largeSpacing, messages.contentY + Kirigami.Units.largeSpacing)
-        Controller.saveScroll(page.chatJid, idx >= 0 ? MessageModel.messageIdAt(idx) : "")
+        Controller.saveScroll(page.chatJid, messages.contentY)
     }
 
     function positionInitially() {
+        // Force a synchronous layout so contentHeight is final (image heights are
+        // reserved), then restore the exact offset without any settle jitter.
+        messages.forceLayout()
         if (Settings.rememberScroll) {
-            const id = Controller.savedScroll(page.chatJid)
-            const idx = id.length > 0 ? MessageModel.indexOfMessage(id) : -1
-            if (idx >= 0) {
-                messages.positionViewAtIndex(idx, ListView.Beginning)
+            const y = Controller.savedScroll(page.chatJid)
+            if (y >= 0) {
+                messages.contentY = y
+                messages.returnToBounds()
             }
         }
         // Otherwise the bottom-up view already shows the newest message.
@@ -458,12 +460,12 @@ Kirigami.Page {
         anchors.rightMargin: Kirigami.Units.largeSpacing + Kirigami.Units.gridUnit
         anchors.bottomMargin: Kirigami.Units.largeSpacing
         focusPolicy: Qt.NoFocus
-        // Show only when the newest messages are scrolled out of view. Using the
-        // item index at the bottom edge avoids the contentY ambiguity of a
-        // bottom-up list, and is stable now that image heights are reserved.
-        visible: messages.count > 5
-                 && messages.indexAt(messages.width / 2, messages.contentY + messages.height - 2) > 4
+        // In this bottom-up list the newest message sits at the maximum contentY,
+        // so the distance from it is stable now that heights are reserved. Show
+        // only after scrolling up about half a screen.
+        visible: messages.contentHeight > messages.height
+                 && (messages.contentHeight - messages.contentY - messages.height) > messages.height * 0.5
         icon.name: "go-down-symbolic"
-        onClicked: messages.positionViewAtBeginning()
+        onClicked: messages.contentY = messages.contentHeight - messages.height
     }
 }

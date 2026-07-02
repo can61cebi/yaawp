@@ -96,16 +96,16 @@ void Controller::copyToClipboard(const QString &text) const
     }
 }
 
-void Controller::saveScroll(const QString &jid, const QString &messageId)
+void Controller::saveScroll(const QString &jid, double contentY)
 {
     if (!jid.isEmpty()) {
-        m_scroll.insert(jid, messageId);
+        m_scroll.insert(jid, contentY);
     }
 }
 
-QString Controller::savedScroll(const QString &jid) const
+double Controller::savedScroll(const QString &jid) const
 {
-    return m_scroll.value(jid, QString());
+    return m_scroll.value(jid, -1.0);
 }
 
 void Controller::updateStatus()
