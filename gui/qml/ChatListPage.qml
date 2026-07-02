@@ -26,6 +26,14 @@ Kirigami.Page {
         anchors.fill: parent
         spacing: 0
 
+        Kirigami.SearchField {
+            id: searchField
+            Layout.fillWidth: true
+            Layout.margins: Kirigami.Units.smallSpacing
+            placeholderText: "Search chats"
+            onTextChanged: ChatFilterModel.filterText = text
+        }
+
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             visible: Controller.connectionState !== "connected"
@@ -41,7 +49,7 @@ Kirigami.Page {
 
             ListView {
                 id: list
-                model: ChatModel
+                model: ChatFilterModel
 
                 delegate: QQC2.ItemDelegate {
                     id: item
@@ -85,8 +93,8 @@ Kirigami.Page {
                     anchors.centerIn: parent
                     width: parent.width - Kirigami.Units.gridUnit * 4
                     visible: list.count === 0
-                    text: "No chats yet"
-                    explanation: "New messages will appear here once you are connected."
+                    text: searchField.text.length > 0 ? "No matches" : "No chats yet"
+                    explanation: searchField.text.length > 0 ? "" : "New messages will appear here once you are connected."
                 }
             }
         }

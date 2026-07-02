@@ -22,6 +22,7 @@ qt_add_executable(yaawp
     src/ipcclient.cpp
     src/controller.cpp
     src/chatlistmodel.cpp
+    src/chatfiltermodel.cpp
     src/messagemodel.cpp
     src/notifier.cpp
     src/settings.cpp

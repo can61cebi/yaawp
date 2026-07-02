@@ -8,6 +8,7 @@
 #include <KLocalizedContext>
 #include <KLocalizedString>
 
+#include "chatfiltermodel.h"
 #include "chatlistmodel.h"
 #include "controller.h"
 #include "ipcclient.h"
@@ -38,6 +39,8 @@ int main(int argc, char *argv[])
     IpcClient ipc;
     Controller controller(&ipc);
     ChatListModel chatModel(&ipc);
+    ChatFilterModel chatFilter;
+    chatFilter.setSourceModel(&chatModel);
     MessageModel messageModel(&ipc);
     Notifier notifier(&ipc, &controller);
     Settings settings;
@@ -47,6 +50,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Ipc"), &ipc);
     engine.rootContext()->setContextProperty(QStringLiteral("Controller"), &controller);
     engine.rootContext()->setContextProperty(QStringLiteral("ChatModel"), &chatModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("ChatFilterModel"), &chatFilter);
     engine.rootContext()->setContextProperty(QStringLiteral("MessageModel"), &messageModel);
     engine.rootContext()->setContextProperty(QStringLiteral("Settings"), &settings);
 
