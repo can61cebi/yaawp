@@ -66,20 +66,23 @@ cmake --build build
 
 ## Run
 
-Start the daemon in one terminal:
-
-```
-./daemon/bin/yaawp-daemon
-```
-
-Start the GUI in another terminal:
+Start the GUI. It launches the daemon automatically when it is not already
+running, and reconnects to it if the connection drops:
 
 ```
 ./gui/build/bin/yaawp
 ```
 
-On first run the daemon is not paired. The GUI shows a QR code. Open WhatsApp
-on your phone, go to Linked Devices, and scan it.
+You can also run the daemon yourself in a separate terminal, which is handy for
+watching its logs:
+
+```
+./daemon/bin/yaawp-daemon
+```
+
+On first run the daemon is not paired. The GUI shows a QR code. Open WhatsApp on
+your phone, go to Linked Devices, and scan it. Closing the window keeps the app
+running in the system tray.
 
 ## Project layout
 

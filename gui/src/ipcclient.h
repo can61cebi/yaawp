@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 
 // IpcClient owns the Unix socket connection to yaawp-daemon and translates the
 // newline-delimited JSON protocol into Qt signals and invokable methods.
@@ -54,11 +55,13 @@ private Q_SLOTS:
     void onReadyRead();
     void onSocketConnected();
     void onSocketDisconnected();
+    void onSocketError();
 
 private:
     QString socketPath() const;
     void send(const QString &method, const QJsonObject &params = {});
     void handleLine(const QByteArray &line);
+    void ensureDaemonRunning();
     void handleEvent(const QString &event, const QJsonObject &data);
     void handleResponse(const QString &id, bool ok, const QJsonValue &result);
 
@@ -66,4 +69,6 @@ private:
     QByteArray m_buffer;
     quint64 m_nextId = 1;
     QHash<QString, QString> m_pending; // request id -> method
+    QTimer m_reconnectTimer;
+    bool m_spawnedDaemon = false;
 };

@@ -17,6 +17,11 @@ run: build
 
 install: build
 	install -Dm755 bin/$(BINARY) $(PREFIX)/bin/$(BINARY)
+	install -Dm644 ../packaging/systemd/$(BINARY).service $(HOME)/.config/systemd/user/$(BINARY).service
+
+enable-service:
+	systemctl --user daemon-reload
+	systemctl --user enable --now $(BINARY).service
 
 clean:
 	rm -rf bin

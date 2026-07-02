@@ -1,8 +1,12 @@
 #include "ipcclient.h"
 
+#include <QCoreApplication>
 #include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
+#include <QProcess>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
 
 IpcClient::IpcClient(QObject *parent)
     : QObject(parent)
@@ -10,6 +14,11 @@ IpcClient::IpcClient(QObject *parent)
     connect(&m_socket, &QLocalSocket::readyRead, this, &IpcClient::onReadyRead);
     connect(&m_socket, &QLocalSocket::connected, this, &IpcClient::onSocketConnected);
     connect(&m_socket, &QLocalSocket::disconnected, this, &IpcClient::onSocketDisconnected);
+    connect(&m_socket, &QLocalSocket::errorOccurred, this, &IpcClient::onSocketError);
+
+    m_reconnectTimer.setInterval(2000);
+    m_reconnectTimer.setSingleShot(true);
+    connect(&m_reconnectTimer, &QTimer::timeout, this, &IpcClient::connectToDaemon);
 }
 
 QString IpcClient::socketPath() const
@@ -43,6 +52,35 @@ void IpcClient::onSocketConnected()
 void IpcClient::onSocketDisconnected()
 {
     Q_EMIT connectedChanged();
+    m_reconnectTimer.start();
+}
+
+void IpcClient::onSocketError()
+{
+    Q_EMIT connectedChanged();
+    ensureDaemonRunning();
+    if (!m_reconnectTimer.isActive()) {
+        m_reconnectTimer.start();
+    }
+}
+
+void IpcClient::ensureDaemonRunning()
+{
+    if (m_spawnedDaemon) {
+        return;
+    }
+    QString exe = QStandardPaths::findExecutable(QStringLiteral("yaawp-daemon"));
+    if (exe.isEmpty()) {
+        // Development fallback relative to the GUI binary (gui/build/bin/yaawp).
+        const QString dev = QCoreApplication::applicationDirPath()
+            + QStringLiteral("/../../../daemon/bin/yaawp-daemon");
+        if (QFileInfo::exists(dev)) {
+            exe = dev;
+        }
+    }
+    if (!exe.isEmpty()) {
+        m_spawnedDaemon = QProcess::startDetached(exe, {});
+    }
 }
 
 void IpcClient::onReadyRead()
