@@ -432,6 +432,15 @@ Kirigami.Page {
                         }
                     }
                     onAccepted: page.sendCurrent()
+                    Keys.onPressed: (event) => {
+                        if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) {
+                            const p = Controller.takeClipboardImage()
+                            if (p.length > 0) {
+                                Ipc.sendMedia(page.chatJid, p, "")
+                                event.accepted = true
+                            }
+                        }
+                    }
                 }
                 QQC2.Button {
                     text: "Send"
@@ -804,6 +813,34 @@ Kirigami.Page {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    DropArea {
+        id: dropArea
+        anchors.fill: parent
+        onDropped: (drop) => {
+            if (drop.hasUrls) {
+                for (let i = 0; i < drop.urls.length; i++) {
+                    MessageModel.sendFile(drop.urls[i], "")
+                }
+                drop.accept()
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            visible: dropArea.containsDrag
+            color: Kirigami.Theme.highlightColor
+            opacity: 0.15
+            border.width: 2
+            border.color: Kirigami.Theme.highlightColor
+
+            Kirigami.Heading {
+                anchors.centerIn: parent
+                text: "Drop to send"
+                color: Kirigami.Theme.highlightColor
             }
         }
     }

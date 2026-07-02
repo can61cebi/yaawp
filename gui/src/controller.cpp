@@ -4,7 +4,10 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QDir>
 #include <QGuiApplication>
+#include <QImage>
+#include <QStandardPaths>
 #include <QUrl>
 
 Controller::Controller(IpcClient *ipc, QObject *parent)
@@ -127,6 +130,21 @@ void Controller::openFile(const QString &path) const
     if (!path.isEmpty()) {
         QDesktopServices::openUrl(QUrl::fromLocalFile(path));
     }
+}
+
+QString Controller::takeClipboardImage() const
+{
+    const QImage image = QGuiApplication::clipboard()->image();
+    if (image.isNull()) {
+        return QString();
+    }
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    const QString path = QDir(dir).filePath(
+        QStringLiteral("yaawp-paste-%1.png").arg(QDateTime::currentMSecsSinceEpoch()));
+    if (!image.save(path, "PNG")) {
+        return QString();
+    }
+    return path;
 }
 
 void Controller::saveScroll(const QString &jid, double contentY)
