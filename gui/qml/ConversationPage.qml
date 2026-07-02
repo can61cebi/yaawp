@@ -129,9 +129,10 @@ Kirigami.Page {
         input.forceActiveFocus()
     }
 
-    function linkify(t) {
+    function linkify(t, color) {
         const esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-        return esc.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1">$1</a>')
+        return esc.replace(/(https?:\/\/[^\s]+)/g,
+            '<a href="$1" style="color:' + color + '; text-decoration:underline;">$1</a>')
     }
 
     function jumpToMessage(id) {
@@ -896,20 +897,36 @@ Kirigami.Page {
                                 }
                             }
 
-                            QQC2.Label {
+                            TextEdit {
                                 id: textLabel
                                 readonly property bool revoked: row.type === "revoked"
+                                readonly property string linkCol: "" + (row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.linkColor)
                                 visible: (row.text.length > 0 || revoked) && !fileChip.isFile
                                 width: parent.width
-                                text: revoked ? "This message was deleted" : page.linkify(row.text)
+                                text: revoked ? "This message was deleted" : page.linkify(row.text, linkCol)
                                 font.italic: revoked
                                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * Settings.messageScale
                                 opacity: revoked ? 0.7 : 1.0
-                                textFormat: Text.StyledText
-                                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                textFormat: TextEdit.RichText
+                                wrapMode: TextEdit.Wrap
+                                readOnly: true
+                                selectByMouse: true
                                 color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                                linkColor: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.linkColor
-                                onLinkActivated: (link) => Controller.openUrl(link)
+                                selectionColor: Kirigami.Theme.highlightColor
+                                selectedTextColor: Kirigami.Theme.highlightedTextColor
+
+                                // Links open only while Ctrl is held, so a plain drag can select
+                                // text starting anywhere inside a URL rather than opening it.
+                                TapHandler {
+                                    acceptedButtons: Qt.LeftButton
+                                    acceptedModifiers: Qt.ControlModifier
+                                    onTapped: (eventPoint) => {
+                                        const link = textLabel.linkAt(eventPoint.position.x, eventPoint.position.y)
+                                        if (link.length > 0) {
+                                            Controller.openUrl(link)
+                                        }
+                                    }
+                                }
                             }
 
                             QQC2.Label {
