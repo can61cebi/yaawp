@@ -16,6 +16,7 @@ struct ChatItem {
     int unread = 0;
     bool pinned = false;
     bool muted = false;
+    QString avatarPath;
 };
 
 // ChatListModel holds the list of conversations. It is filled from the daemon
@@ -33,6 +34,7 @@ public:
         UnreadRole,
         PinnedRole,
         MutedRole,
+        AvatarRole,
     };
 
     explicit ChatListModel(IpcClient *ipc, QObject *parent = nullptr);
@@ -45,6 +47,7 @@ private Q_SLOTS:
     void onChatsReceived(const QJsonArray &chats);
     void onMessageReceived(const QJsonObject &message);
     void onChatUnread(const QString &jid, int unread);
+    void onAvatar(const QString &jid, const QString &path);
 
 private:
     int indexOfJid(const QString &jid) const;

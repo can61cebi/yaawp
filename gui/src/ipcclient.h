@@ -41,6 +41,7 @@ public:
     Q_INVOKABLE void setMuted(const QString &jid, bool muted);
     Q_INVOKABLE void starMessage(const QString &chatJid, const QString &id, bool starred);
     Q_INVOKABLE void requestStarred();
+    Q_INVOKABLE void requestAvatar(const QString &jid);
     void markRead(const QString &chatJid, const QStringList &ids);
 
 Q_SIGNALS:
@@ -62,6 +63,7 @@ Q_SIGNALS:
     void messageEdited(const QString &chatJid, const QString &id, const QString &text);
     void groupInfoReceived(const QJsonObject &info);
     void starredReceived(const QJsonArray &messages);
+    void avatarReceived(const QString &jid, const QString &path);
     void eventReceived(const QString &event, const QJsonObject &data);
 
 private Q_SLOTS:

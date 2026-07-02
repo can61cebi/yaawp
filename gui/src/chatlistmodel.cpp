@@ -8,6 +8,19 @@ ChatListModel::ChatListModel(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::chatsReceived, this, &ChatListModel::onChatsReceived);
     connect(ipc, &IpcClient::messageReceived, this, &ChatListModel::onMessageReceived);
     connect(ipc, &IpcClient::chatUnreadChanged, this, &ChatListModel::onChatUnread);
+    connect(ipc, &IpcClient::avatarReceived, this, &ChatListModel::onAvatar);
+}
+
+void ChatListModel::onAvatar(const QString &jid, const QString &path)
+{
+    for (int i = 0; i < m_chats.size(); ++i) {
+        if (m_chats.at(i).jid == jid) {
+            m_chats[i].avatarPath = path;
+            const QModelIndex idx = index(i);
+            Q_EMIT dataChanged(idx, idx, {AvatarRole});
+            return;
+        }
+    }
 }
 
 int ChatListModel::rowCount(const QModelIndex &parent) const
@@ -39,6 +52,8 @@ QVariant ChatListModel::data(const QModelIndex &index, int role) const
         return c.pinned;
     case MutedRole:
         return c.muted;
+    case AvatarRole:
+        return c.avatarPath;
     default:
         return {};
     }
@@ -54,6 +69,7 @@ QHash<int, QByteArray> ChatListModel::roleNames() const
         {UnreadRole, "unread"},
         {PinnedRole, "pinned"},
         {MutedRole, "muted"},
+        {AvatarRole, "avatarPath"},
     };
 }
 
@@ -72,6 +88,7 @@ void ChatListModel::onChatsReceived(const QJsonArray &chats)
         item.pinned = o.value(QStringLiteral("pinned")).toBool();
         item.muted = o.value(QStringLiteral("muted")).toBool();
         m_chats.append(item);
+        m_ipc->requestAvatar(item.jid);
     }
     endResetModel();
 }

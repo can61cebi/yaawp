@@ -122,6 +122,7 @@ Kirigami.Page {
                 required property int unread
                 required property bool pinned
                 required property bool muted
+                required property string avatarPath
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.largeSpacing
@@ -130,6 +131,7 @@ Kirigami.Page {
                         Layout.preferredWidth: Kirigami.Units.iconSizes.medium
                         Layout.preferredHeight: Kirigami.Units.iconSizes.medium
                         name: item.name
+                        source: item.avatarPath.length > 0 ? "file://" + item.avatarPath : ""
                     }
 
                     ColumnLayout {

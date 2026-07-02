@@ -50,6 +50,23 @@ func MediaDir() (string, error) {
 	return dir, nil
 }
 
+// AvatarDir returns the cache directory for profile pictures, creating it.
+func AvatarDir() (string, error) {
+	base := os.Getenv("XDG_CACHE_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		base = filepath.Join(home, ".cache")
+	}
+	dir := filepath.Join(base, "yaawp", "avatars")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
 // SocketPath returns the Unix domain socket path used for IPC.
 func SocketPath() (string, error) {
 	base := os.Getenv("XDG_RUNTIME_DIR")

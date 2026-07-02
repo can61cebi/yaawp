@@ -34,6 +34,7 @@ const (
 	MethodSetMuted          = "set_muted"
 	MethodStarMessage       = "star_message"
 	MethodListStarred       = "list_starred"
+	MethodRequestAvatar     = "request_avatar"
 )
 
 // Event names (daemon to GUI).
@@ -52,6 +53,7 @@ const (
 	EventReaction       = "reaction"
 	EventChatUnread     = "chat_unread"
 	EventMessageEdited  = "message_edited"
+	EventAvatar         = "avatar"
 )
 
 // Command is a request from a GUI client.
@@ -211,6 +213,11 @@ type StarMessageParams struct {
 	Starred   bool   `json:"starred"`
 }
 
+// RequestAvatarParams asks for a chat or contact's profile picture.
+type RequestAvatarParams struct {
+	JID string `json:"jid"`
+}
+
 // Backend is implemented by the engine. The IPC server dispatches commands to
 // it and returns a JSON-serialisable result or an error.
 type Backend interface {
@@ -237,4 +244,5 @@ type Backend interface {
 	SetMuted(p SetMutedParams) (interface{}, error)
 	StarMessage(p StarMessageParams) (interface{}, error)
 	ListStarred() (interface{}, error)
+	RequestAvatar(p RequestAvatarParams) (interface{}, error)
 }

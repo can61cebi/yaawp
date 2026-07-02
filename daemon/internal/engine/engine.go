@@ -9,6 +9,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -299,6 +300,44 @@ func (e *Engine) SetMuted(p ipc.SetMutedParams) (interface{}, error) {
 	if err := e.db.SetMuted(p.JID, p.Muted); err != nil {
 		return nil, err
 	}
+	return map[string]any{"ok": true}, nil
+}
+
+// RequestAvatar fetches and caches a chat or contact's profile picture, then
+// notifies clients with the local path. A cached picture is returned at once.
+func (e *Engine) RequestAvatar(p ipc.RequestAvatarParams) (interface{}, error) {
+	jid, err := types.ParseJID(p.JID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jid: %w", err)
+	}
+	dir, err := store.AvatarDir()
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(dir, sanitizeID(p.JID)+".jpg")
+	if _, statErr := os.Stat(path); statErr == nil {
+		e.emit(ipc.NewEvent(ipc.EventAvatar, map[string]any{"jid": p.JID, "path": path}))
+		return map[string]any{"ok": true}, nil
+	}
+	go func() {
+		info, err := e.client.GetProfilePictureInfo(e.ctx, jid, &whatsmeow.GetProfilePictureParams{Preview: true})
+		if err != nil || info == nil || info.URL == "" {
+			return
+		}
+		resp, err := http.Get(info.URL)
+		if err != nil {
+			return
+		}
+		defer func() { _ = resp.Body.Close() }()
+		data, err := io.ReadAll(resp.Body)
+		if err != nil || len(data) == 0 {
+			return
+		}
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			return
+		}
+		e.emit(ipc.NewEvent(ipc.EventAvatar, map[string]any{"jid": p.JID, "path": path}))
+	}()
 	return map[string]any{"ok": true}, nil
 }
 

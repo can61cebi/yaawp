@@ -189,6 +189,10 @@ func (s *Server) dispatch(c *client, cmd Command) {
 		result, err = s.backend.StarMessage(p)
 	case MethodListStarred:
 		result, err = s.backend.ListStarred()
+	case MethodRequestAvatar:
+		var p RequestAvatarParams
+		_ = json.Unmarshal(cmd.Params, &p)
+		result, err = s.backend.RequestAvatar(p)
 	default:
 		err = errUnknownMethod
 	}

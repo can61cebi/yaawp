@@ -164,6 +164,9 @@ void IpcClient::handleEvent(const QString &event, const QJsonObject &data)
         Q_EMIT messageEdited(data.value(QStringLiteral("chat_jid")).toString(),
                              data.value(QStringLiteral("message_id")).toString(),
                              data.value(QStringLiteral("text")).toString());
+    } else if (event == QStringLiteral("avatar")) {
+        Q_EMIT avatarReceived(data.value(QStringLiteral("jid")).toString(),
+                              data.value(QStringLiteral("path")).toString());
     }
     Q_EMIT eventReceived(event, data);
 }
@@ -323,6 +326,13 @@ void IpcClient::starMessage(const QString &chatJid, const QString &id, bool star
 void IpcClient::requestStarred()
 {
     send(QStringLiteral("list_starred"), QJsonObject());
+}
+
+void IpcClient::requestAvatar(const QString &jid)
+{
+    QJsonObject p;
+    p.insert(QStringLiteral("jid"), jid);
+    send(QStringLiteral("request_avatar"), p);
 }
 
 void IpcClient::sendReaction(const QString &chatJid, const QString &messageId, const QString &senderJid, bool fromMe, const QString &emoji)
