@@ -6,10 +6,12 @@
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
+#include <QEvent>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QImage>
+#include <QKeyEvent>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QUrl>
@@ -27,6 +29,42 @@ Controller::Controller(IpcClient *ipc, QObject *parent)
     connect(ipc, &IpcClient::groupInfoReceived, this, &Controller::onGroupInfoReceived);
     connect(ipc, &IpcClient::contactInfoReceived, this, &Controller::onContactInfoReceived);
     connect(ipc, &IpcClient::starredReceived, this, &Controller::onStarredReceived);
+
+    // Track the Control key across the whole app for the Ctrl+hover link cue.
+    if (auto *app = QCoreApplication::instance()) {
+        app->installEventFilter(this);
+    }
+}
+
+bool Controller::eventFilter(QObject *watched, QEvent *event)
+{
+    switch (event->type()) {
+    case QEvent::KeyPress:
+    case QEvent::KeyRelease: {
+        auto *ke = static_cast<QKeyEvent *>(event);
+        if (ke->key() == Qt::Key_Control && !ke->isAutoRepeat()) {
+            setControlPressed(event->type() == QEvent::KeyPress);
+        }
+        break;
+    }
+    case QEvent::WindowDeactivate:
+        // Dropping focus while Ctrl is held would strand the pressed state, since
+        // the matching release goes to another window; clear it defensively.
+        setControlPressed(false);
+        break;
+    default:
+        break;
+    }
+    return QObject::eventFilter(watched, event);
+}
+
+void Controller::setControlPressed(bool pressed)
+{
+    if (m_controlPressed == pressed) {
+        return;
+    }
+    m_controlPressed = pressed;
+    Q_EMIT controlPressedChanged();
 }
 
 void Controller::requestGroupInfo(const QString &jid)

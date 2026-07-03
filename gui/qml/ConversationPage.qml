@@ -30,6 +30,15 @@ Kirigami.Page {
     readonly property color sentFgColor: sentDark ? "#eff0f1" : "#0c2a38"
     readonly property color sentReadTick: "#12c650"
 
+    // Translucent highlight painted behind a link while it is Ctrl+hovered, to
+    // mark it as clickable. Derived from the theme accent at low opacity so it
+    // reads on both received and sent bubbles in light and dark mode.
+    readonly property string linkActiveBg: {
+        const c = Kirigami.Theme.highlightColor
+        return "rgba(" + Math.round(c.r * 255) + "," + Math.round(c.g * 255)
+             + "," + Math.round(c.b * 255) + ",0.35)"
+    }
+
     title: chatTitle
     padding: 0
 
@@ -155,10 +164,17 @@ Kirigami.Page {
         input.forceActiveFocus()
     }
 
-    function linkify(t, color) {
+    function linkify(t, color, activeUrl, activeBg) {
         const esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-        return esc.replace(/(https?:\/\/[^\s]+)/g,
-            '<a href="$1" style="color:' + color + '; text-decoration:underline;">$1</a>')
+        return esc.replace(/(https?:\/\/[^\s]+)/g, function (match, url) {
+            // linkAt returns the href with entities decoded, so compare on the
+            // decoded form to spot the link currently under a Ctrl+hover.
+            const decoded = url.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+            const active = activeUrl && activeUrl.length > 0 && decoded === activeUrl
+            const bg = active ? " background-color:" + activeBg + ";" : ""
+            return '<a href="' + url + '" style="color:' + color
+                 + '; text-decoration:underline;' + bg + '">' + url + '</a>'
+        })
     }
 
     function jumpToMessage(id) {
@@ -972,9 +988,19 @@ Kirigami.Page {
                                 id: textLabel
                                 readonly property bool revoked: row.type === "revoked"
                                 readonly property string linkCol: "" + (row.fromMe ? page.sentFgColor : Kirigami.Theme.linkColor)
+                                // The link currently under the pointer, and whether it is armed:
+                                // links open on Ctrl+click, so while Ctrl is held they read as
+                                // clickable (highlight, pointing-hand cursor, destination tooltip).
+                                readonly property string hoveredLink: linkHover.hovered
+                                    ? textLabel.linkAt(linkHover.point.position.x, linkHover.point.position.y) : ""
+                                readonly property bool linkArmed: Controller.controlPressed && hoveredLink.length > 0
+                                // Empty unless a link is armed, so the text only re-renders when the
+                                // highlighted link actually changes, not on every plain hover move.
+                                readonly property string activeUrl: linkArmed ? hoveredLink : ""
                                 visible: (row.text.length > 0 || revoked) && !fileChip.isFile
                                 width: parent.width
-                                text: revoked ? "This message was deleted" : page.linkify(row.text, linkCol)
+                                text: revoked ? "This message was deleted"
+                                    : page.linkify(row.text, linkCol, activeUrl, page.linkActiveBg)
                                 font.italic: revoked
                                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * Settings.messageScale
                                 opacity: revoked ? 0.7 : 1.0
@@ -985,6 +1011,20 @@ Kirigami.Page {
                                 color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                 selectionColor: row.fromMe ? page.sentFgColor : Kirigami.Theme.highlightColor
                                 selectedTextColor: row.fromMe ? page.sentBubbleColor : Kirigami.Theme.highlightedTextColor
+
+                                // Tracks the pointer to know which link is hovered and to show the
+                                // pointing-hand cursor when a link is armed; a plain hover keeps the
+                                // I-beam so text stays selectable.
+                                HoverHandler {
+                                    id: linkHover
+                                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                    cursorShape: textLabel.linkArmed ? Qt.PointingHandCursor : Qt.IBeamCursor
+                                }
+
+                                // Preview where an armed link leads, so Ctrl+click is never blind.
+                                QQC2.ToolTip.text: textLabel.hoveredLink
+                                QQC2.ToolTip.visible: textLabel.linkArmed
+                                QQC2.ToolTip.delay: 0
 
                                 // Links open only while Ctrl is held, so a plain drag can select
                                 // text starting anywhere inside a URL rather than opening it.

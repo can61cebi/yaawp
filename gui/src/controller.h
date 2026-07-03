@@ -31,6 +31,10 @@ class Controller : public QObject
     Q_PROPERTY(bool startHidden READ startHidden NOTIFY startHiddenChanged)
     // Whether a desktop autostart entry exists, so the app opens on login.
     Q_PROPERTY(bool autostartEnabled READ autostartEnabled WRITE setAutostartEnabled NOTIFY autostartEnabledChanged)
+    // True while a Control key is held anywhere in the app. Drives the Ctrl+hover
+    // link affordance (pointing-hand cursor and destination URL preview), which
+    // must appear the instant Ctrl is pressed even if the mouse does not move.
+    Q_PROPERTY(bool controlPressed READ controlPressed NOTIFY controlPressedChanged)
 
 public:
     explicit Controller(IpcClient *ipc, QObject *parent = nullptr);
@@ -48,6 +52,7 @@ public:
 
     bool startHidden() const { return m_startHidden; }
     void setStartHidden(bool hidden);
+    bool controlPressed() const { return m_controlPressed; }
     bool autostartEnabled() const;
     void setAutostartEnabled(bool enabled);
 
@@ -75,6 +80,12 @@ Q_SIGNALS:
     void starredChanged();
     void startHiddenChanged();
     void autostartEnabledChanged();
+    void controlPressedChanged();
+
+protected:
+    // Watches application-wide key events to keep controlPressed in sync, so the
+    // link affordance reacts to Ctrl being held even without pointer movement.
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private Q_SLOTS:
     void onQrReceived(const QString &code);
@@ -89,6 +100,7 @@ private Q_SLOTS:
 
 private:
     void updateStatus();
+    void setControlPressed(bool pressed);
 
     IpcClient *m_ipc;
     // Start in "connecting", not "logged_out": until the daemon reports the real
@@ -106,6 +118,7 @@ private:
     QVariantMap m_contactInfo;
     QVariantList m_starred;
     bool m_startHidden = false;
+    bool m_controlPressed = false;
 
     QString autostartFilePath() const;
 };
