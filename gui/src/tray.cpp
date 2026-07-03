@@ -4,20 +4,40 @@
 
 #include <KStatusNotifierItem>
 
+#include <QIcon>
 #include <QString>
 #include <QWindow>
 
 #include <utility>
 
+namespace {
+// Resolve the app icon from the current theme, falling back to the copy compiled
+// into the binary. A freshly installed hicolor icon is not always visible to an
+// already-running plasmashell, so a bundled fallback keeps the tray from being
+// blank.
+QIcon loadAppIcon()
+{
+    QIcon icon = QIcon::fromTheme(QStringLiteral("tr.cebi.yaawp"));
+    if (icon.isNull()) {
+        icon = QIcon(QStringLiteral(":/icons/tr.cebi.yaawp.svg"));
+    }
+    return icon;
+}
+}
+
 Tray::Tray(IpcClient *ipc, QObject *parent)
     : QObject(parent)
     , m_sni(new KStatusNotifierItem(QStringLiteral("tr.cebi.yaawp"), this))
+    , m_icon(loadAppIcon())
 {
-    m_sni->setIconByName(QStringLiteral("tr.cebi.yaawp"));
+    // Send the icon as pixmap data rather than by name. plasmashell renders the
+    // bytes directly, so the tray icon shows reliably regardless of whether the
+    // running shell has picked up the installed hicolor icon yet.
+    m_sni->setIconByPixmap(m_icon);
     m_sni->setCategory(KStatusNotifierItem::Communications);
     m_sni->setStatus(KStatusNotifierItem::Active);
     m_sni->setTitle(QStringLiteral("yaawp"));
-    m_sni->setToolTip(QStringLiteral("tr.cebi.yaawp"), QStringLiteral("yaawp"), QString());
+    m_sni->setToolTip(m_icon, QStringLiteral("yaawp"), QString());
     m_sni->setStandardActionsEnabled(true);
 
     connect(ipc, &IpcClient::chatUnreadChanged, this, &Tray::onChatUnread);
@@ -45,11 +65,11 @@ void Tray::refreshTooltip()
         total += n;
     }
     if (total > 0) {
-        m_sni->setToolTip(QStringLiteral("tr.cebi.yaawp"), QStringLiteral("yaawp"),
+        m_sni->setToolTip(m_icon, QStringLiteral("yaawp"),
                           QStringLiteral("%1 unread").arg(total));
         m_sni->setStatus(KStatusNotifierItem::NeedsAttention);
     } else {
-        m_sni->setToolTip(QStringLiteral("tr.cebi.yaawp"), QStringLiteral("yaawp"), QString());
+        m_sni->setToolTip(m_icon, QStringLiteral("yaawp"), QString());
         m_sni->setStatus(KStatusNotifierItem::Active);
     }
 }

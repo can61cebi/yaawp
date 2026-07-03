@@ -40,6 +40,14 @@ qt_add_qml_module(yaawp
         qml/SettingsPage.qml
 )
 
+# Compile the app icon into the binary so the tray and window icon are always
+# available, even before a freshly installed hicolor icon reaches the running
+# plasmashell icon cache. Resource path: :/icons/tr.cebi.yaawp.svg
+qt_add_resources(yaawp "appicon"
+    PREFIX "/"
+    FILES icons/tr.cebi.yaawp.svg
+)
+
 target_link_libraries(yaawp PRIVATE
     Qt6::Core
     Qt6::Gui

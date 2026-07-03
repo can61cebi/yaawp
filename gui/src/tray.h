@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QHash>
+#include <QIcon>
 #include <QObject>
 #include <QString>
 
@@ -27,5 +28,6 @@ private:
     void refreshTooltip();
 
     KStatusNotifierItem *m_sni;
+    QIcon m_icon;                 // the app icon, sent to the tray as pixmap data
     QHash<QString, int> m_unread; // per chat unread, summed for the tooltip
 };

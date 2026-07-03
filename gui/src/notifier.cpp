@@ -62,7 +62,7 @@ void Notifier::onMessageReceived(const QJsonObject &message)
     notification->setComponentName(QStringLiteral("yaawp"));
     notification->setTitle(title);
     notification->setText(text);
-    notification->setIconName(QStringLiteral("internet-mail"));
+    notification->setIconName(QStringLiteral("tr.cebi.yaawp"));
 
     auto reply = std::make_unique<KNotificationReplyAction>(QStringLiteral("Reply"));
     reply->setPlaceholderText(QStringLiteral("Reply to %1").arg(title));

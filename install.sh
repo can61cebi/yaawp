@@ -73,11 +73,17 @@ install_app() {
     install -Dm755 "$ROOT/daemon/bin/yaawp-daemon" "$PREFIX/bin/yaawp-daemon"
     DESTDIR="" cmake --install "$ROOT/gui/build" >/dev/null
 
-    # The launcher entry ships with a bare "Exec=yaawp", which only resolves when
-    # the prefix bin dir is on the session PATH. For a user prefix that is not
-    # guaranteed, so point it at the absolute binary path.
+    # The launcher entry ships with a bare "Exec=yaawp" and a themed "Icon" name,
+    # which assume the prefix bin dir is on PATH and the running shell has already
+    # picked up the installed icon. For a user prefix neither is guaranteed, so
+    # rewrite both to absolute paths. plasmashell then loads the icon file
+    # directly and the entry shows correctly right after install.
     local desktop="$PREFIX/share/applications/$APP_ID.desktop"
-    [ -f "$desktop" ] && sed -i "s|^Exec=yaawp$|Exec=$PREFIX/bin/yaawp|" "$desktop"
+    local iconfile="$PREFIX/share/icons/hicolor/scalable/apps/$APP_ID.svg"
+    if [ -f "$desktop" ]; then
+        sed -i "s|^Exec=yaawp$|Exec=$PREFIX/bin/yaawp|" "$desktop"
+        sed -i "s|^Icon=$APP_ID$|Icon=$iconfile|" "$desktop"
+    fi
 
     refresh_caches
 

@@ -25,7 +25,14 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName(QStringLiteral("yaawp"));
     QApplication::setApplicationVersion(QStringLiteral("0.1.0"));
     QApplication::setDesktopFileName(QStringLiteral("tr.cebi.yaawp"));
-    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("tr.cebi.yaawp")));
+    // Prefer the themed icon; fall back to the copy compiled into the binary so
+    // the window and taskbar have an icon even before the installed hicolor icon
+    // is visible to the running session.
+    QIcon appIcon = QIcon::fromTheme(QStringLiteral("tr.cebi.yaawp"));
+    if (appIcon.isNull()) {
+        appIcon = QIcon(QStringLiteral(":/icons/tr.cebi.yaawp.svg"));
+    }
+    QApplication::setWindowIcon(appIcon);
 
     // --hidden starts the window in the tray (used by the autostart entry so the
     // app comes up on login and delivers notifications without stealing focus).
