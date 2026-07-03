@@ -5,6 +5,7 @@
 #include <QQuickStyle>
 #include <QWindow>
 
+#include <KDBusService>
 #include <KLocalizedContext>
 #include <KLocalizedString>
 
@@ -33,6 +34,13 @@ int main(int argc, char *argv[])
         appIcon = QIcon(QStringLiteral(":/icons/tr.cebi.yaawp.svg"));
     }
     QApplication::setWindowIcon(appIcon);
+
+    // Enforce a single running instance. The autostart entry launches a hidden
+    // tray instance on login; without this, opening the app from the launcher
+    // would spawn a second window (and a second GUI racing on the daemon). In
+    // Unique mode a second launch exits and is redirected here as an activation
+    // request, which we handle below by raising the existing window.
+    KDBusService service(KDBusService::Unique);
 
     // --hidden starts the window in the tray (used by the autostart entry so the
     // app comes up on login and delivers notifications without stealing focus).
@@ -72,10 +80,22 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    auto *window = qobject_cast<QWindow *>(engine.rootObjects().constFirst());
     Tray tray(&ipc);
-    if (auto *window = qobject_cast<QWindow *>(engine.rootObjects().constFirst())) {
+    if (window) {
         tray.setWindow(window);
     }
+
+    // A second launch (launcher click while the tray instance runs) arrives here
+    // instead of opening a new window: reveal and focus the existing one.
+    QObject::connect(&service, &KDBusService::activateRequested, &app,
+                     [window](const QStringList &, const QString &) {
+                         if (window) {
+                             window->show();
+                             window->raise();
+                             window->requestActivate();
+                         }
+                     });
 
     ipc.connectToDaemon();
     return app.exec();
