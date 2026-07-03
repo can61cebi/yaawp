@@ -73,6 +73,12 @@ install_app() {
     install -Dm755 "$ROOT/daemon/bin/yaawp-daemon" "$PREFIX/bin/yaawp-daemon"
     DESTDIR="" cmake --install "$ROOT/gui/build" >/dev/null
 
+    # The launcher entry ships with a bare "Exec=yaawp", which only resolves when
+    # the prefix bin dir is on the session PATH. For a user prefix that is not
+    # guaranteed, so point it at the absolute binary path.
+    local desktop="$PREFIX/share/applications/$APP_ID.desktop"
+    [ -f "$desktop" ] && sed -i "s|^Exec=yaawp$|Exec=$PREFIX/bin/yaawp|" "$desktop"
+
     refresh_caches
 
     msg "Installed."
