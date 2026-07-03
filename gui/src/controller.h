@@ -23,6 +23,11 @@ class Controller : public QObject
     Q_PROPERTY(QVariantMap groupInfo READ groupInfo NOTIFY groupInfoChanged)
     Q_PROPERTY(QVariantMap contactInfo READ contactInfo NOTIFY contactInfoChanged)
     Q_PROPERTY(QVariantList starredMessages READ starredMessages NOTIFY starredChanged)
+    // True when the app was launched with --hidden, so the window stays in the
+    // tray at startup. Set once before the QML loads.
+    Q_PROPERTY(bool startHidden READ startHidden NOTIFY startHiddenChanged)
+    // Whether a desktop autostart entry exists, so the app opens on login.
+    Q_PROPERTY(bool autostartEnabled READ autostartEnabled WRITE setAutostartEnabled NOTIFY autostartEnabledChanged)
 
 public:
     explicit Controller(IpcClient *ipc, QObject *parent = nullptr);
@@ -36,6 +41,11 @@ public:
     QVariantMap contactInfo() const { return m_contactInfo; }
     QVariantList starredMessages() const { return m_starred; }
     void setCurrentChatJid(const QString &jid);
+
+    bool startHidden() const { return m_startHidden; }
+    void setStartHidden(bool hidden);
+    bool autostartEnabled() const;
+    void setAutostartEnabled(bool enabled);
 
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
     Q_INVOKABLE void openFile(const QString &path) const;
@@ -59,6 +69,8 @@ Q_SIGNALS:
     void groupInfoChanged();
     void contactInfoChanged();
     void starredChanged();
+    void startHiddenChanged();
+    void autostartEnabledChanged();
 
 private Q_SLOTS:
     void onQrReceived(const QString &code);
@@ -86,4 +98,7 @@ private:
     QVariantMap m_groupInfo;
     QVariantMap m_contactInfo;
     QVariantList m_starred;
+    bool m_startHidden = false;
+
+    QString autostartFilePath() const;
 };

@@ -1,10 +1,11 @@
 [Unit]
 Description=yaawp WhatsApp daemon
+Documentation=https://github.com/can61cebi/yaawp
 After=default.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/yaawp-daemon
+ExecStart=/usr/bin/yaawp-daemon
 Restart=on-failure
 RestartSec=3
 

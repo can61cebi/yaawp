@@ -13,11 +13,11 @@ Tray::Tray(IpcClient *ipc, QObject *parent)
     : QObject(parent)
     , m_sni(new KStatusNotifierItem(QStringLiteral("tr.cebi.yaawp"), this))
 {
-    m_sni->setIconByName(QStringLiteral("internet-mail"));
+    m_sni->setIconByName(QStringLiteral("tr.cebi.yaawp"));
     m_sni->setCategory(KStatusNotifierItem::Communications);
     m_sni->setStatus(KStatusNotifierItem::Active);
     m_sni->setTitle(QStringLiteral("yaawp"));
-    m_sni->setToolTip(QStringLiteral("internet-mail"), QStringLiteral("yaawp"), QString());
+    m_sni->setToolTip(QStringLiteral("tr.cebi.yaawp"), QStringLiteral("yaawp"), QString());
     m_sni->setStandardActionsEnabled(true);
 
     connect(ipc, &IpcClient::chatUnreadChanged, this, &Tray::onChatUnread);
@@ -45,11 +45,11 @@ void Tray::refreshTooltip()
         total += n;
     }
     if (total > 0) {
-        m_sni->setToolTip(QStringLiteral("internet-mail"), QStringLiteral("yaawp"),
+        m_sni->setToolTip(QStringLiteral("tr.cebi.yaawp"), QStringLiteral("yaawp"),
                           QStringLiteral("%1 unread").arg(total));
         m_sni->setStatus(KStatusNotifierItem::NeedsAttention);
     } else {
-        m_sni->setToolTip(QStringLiteral("internet-mail"), QStringLiteral("yaawp"), QString());
+        m_sni->setToolTip(QStringLiteral("tr.cebi.yaawp"), QStringLiteral("yaawp"), QString());
         m_sni->setStatus(KStatusNotifierItem::Active);
     }
 }

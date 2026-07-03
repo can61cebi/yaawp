@@ -10,6 +10,10 @@ Kirigami.ApplicationWindow {
     minimumWidth: 500
     minimumHeight: 400
 
+    // Launched with --hidden (autostart on login): come up in the tray only.
+    // The tray icon restores the window on click.
+    visible: !Controller.startHidden
+
     // Navigation state. The page stack is at most two deep: the chat list plus
     // one secondary page (a conversation or the settings). currentSecondary
     // tracks which secondary page is open so it is never duplicated.

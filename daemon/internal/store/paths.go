@@ -79,3 +79,12 @@ func SocketPath() (string, error) {
 	}
 	return filepath.Join(dir, "daemon.sock"), nil
 }
+
+// LockPath returns the single-instance lock file path, alongside the socket.
+func LockPath() (string, error) {
+	sock, err := SocketPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(filepath.Dir(sock), "daemon.lock"), nil
+}

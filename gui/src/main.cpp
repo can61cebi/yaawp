@@ -23,8 +23,13 @@ int main(int argc, char *argv[])
     QApplication::setOrganizationName(QStringLiteral("cebi"));
     QApplication::setOrganizationDomain(QStringLiteral("cebi.tr"));
     QApplication::setApplicationName(QStringLiteral("yaawp"));
+    QApplication::setApplicationVersion(QStringLiteral("0.1.0"));
     QApplication::setDesktopFileName(QStringLiteral("tr.cebi.yaawp"));
-    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("internet-mail")));
+    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("tr.cebi.yaawp")));
+
+    // --hidden starts the window in the tray (used by the autostart entry so the
+    // app comes up on login and delivers notifications without stealing focus).
+    const bool startHidden = app.arguments().contains(QStringLiteral("--hidden"));
 
     // Use the native KDE desktop style so Qt Quick Controls match Breeze.
     if (QQuickStyle::name().isEmpty()) {
@@ -38,6 +43,7 @@ int main(int argc, char *argv[])
 
     IpcClient ipc;
     Controller controller(&ipc);
+    controller.setStartHidden(startHidden);
     ChatListModel chatModel(&ipc);
     ChatFilterModel chatFilter;
     chatFilter.setSourceModel(&chatModel);

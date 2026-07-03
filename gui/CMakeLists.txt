@@ -58,3 +58,5 @@ target_link_libraries(yaawp PRIVATE
 install(TARGETS yaawp ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 install(FILES tr.cebi.yaawp.desktop DESTINATION ${KDE_INSTALL_APPDIR})
 install(FILES yaawp.notifyrc DESTINATION ${KDE_INSTALL_DATADIR}/knotifications6)
+install(FILES icons/tr.cebi.yaawp.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)

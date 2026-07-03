@@ -2,12 +2,16 @@
 #include "ipcclient.h"
 
 #include <QClipboard>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QImage>
 #include <QStandardPaths>
+#include <QTextStream>
 #include <QUrl>
 
 Controller::Controller(IpcClient *ipc, QObject *parent)
@@ -56,6 +60,58 @@ void Controller::onStarredReceived(const QJsonArray &messages)
 {
     m_starred = messages.toVariantList();
     Q_EMIT starredChanged();
+}
+
+void Controller::setStartHidden(bool hidden)
+{
+    if (m_startHidden == hidden) {
+        return;
+    }
+    m_startHidden = hidden;
+    Q_EMIT startHiddenChanged();
+}
+
+QString Controller::autostartFilePath() const
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+        + QStringLiteral("/autostart");
+    return dir + QStringLiteral("/tr.cebi.yaawp.desktop");
+}
+
+bool Controller::autostartEnabled() const
+{
+    return QFileInfo::exists(autostartFilePath());
+}
+
+void Controller::setAutostartEnabled(bool enabled)
+{
+    if (enabled == autostartEnabled()) {
+        return;
+    }
+    const QString path = autostartFilePath();
+    if (enabled) {
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        // Launch the same binary that is running now, hidden to the tray, so a
+        // local, packaged, or development build all autostart correctly.
+        const QString exec = QCoreApplication::applicationFilePath();
+        QFile file(path);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+            QTextStream out(&file);
+            out << "[Desktop Entry]\n"
+                << "Type=Application\n"
+                << "Name=yaawp\n"
+                << "Comment=Native WhatsApp client for KDE Plasma\n"
+                << "Exec=" << exec << " --hidden\n"
+                << "Icon=tr.cebi.yaawp\n"
+                << "Terminal=false\n"
+                << "Categories=Network;InstantMessaging;Qt;KDE;\n"
+                << "X-KDE-autostart-after=panel\n"
+                << "X-GNOME-Autostart-enabled=true\n";
+        }
+    } else {
+        QFile::remove(path);
+    }
+    Q_EMIT autostartEnabledChanged();
 }
 
 void Controller::setCurrentChatJid(const QString &jid)

@@ -6,6 +6,19 @@ FormCard.FormCardPage {
     title: "Settings"
 
     FormCard.FormHeader {
+        title: "Startup"
+    }
+
+    FormCard.FormCard {
+        FormCard.FormSwitchDelegate {
+            text: "Start on login"
+            description: "Open yaawp automatically when you log in and keep it in the system tray so notifications arrive in the background."
+            checked: Controller.autostartEnabled
+            onToggled: Controller.autostartEnabled = checked
+        }
+    }
+
+    FormCard.FormHeader {
         title: "Conversations"
     }
 
