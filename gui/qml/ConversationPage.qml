@@ -21,6 +21,15 @@ Kirigami.Page {
     readonly property int searchCurrentRow: (searchIndex >= 0 && searchIndex < searchMatches.length) ? searchMatches[searchIndex] : -1
     readonly property bool isGroup: page.chatJid.endsWith("@g.us")
 
+    // Fixed palette for the messages you send. Kirigami.Theme.highlightColor
+    // swaps to a dimmer inactive shade when the window loses focus, so the sent
+    // bubbles shifted colour under you. Pin the softer, more readable blue as the
+    // constant default and pair it with light text in dark mode, dark in light.
+    readonly property bool sentDark: Kirigami.Theme.backgroundColor.hslLightness < 0.5
+    readonly property color sentBubbleColor: sentDark ? "#1b4155" : "#cfe7fb"
+    readonly property color sentFgColor: sentDark ? "#eff0f1" : "#0c2a38"
+    readonly property color sentReadTick: "#12c650"
+
     title: chatTitle
     padding: 0
 
@@ -728,7 +737,7 @@ Kirigami.Page {
                         width: contentW + hpad * 2
                         height: content.height + vpad * 2
                         radius: Kirigami.Units.largeSpacing
-                        color: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.alternateBackgroundColor
+                        color: row.fromMe ? page.sentBubbleColor : Kirigami.Theme.alternateBackgroundColor
                         readonly property bool searchHit: page.searchActive && page.searchQuery.length > 0
                                        && row.text.toLowerCase().indexOf(page.searchQuery.toLowerCase()) >= 0
                         readonly property bool searchCurrent: page.searchActive && row.index === page.searchCurrentRow
@@ -822,7 +831,7 @@ Kirigami.Page {
                                 opacity: 0.7
                                 font.italic: true
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                                color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
 
                                 TapHandler {
                                     enabled: row.quotedId.length > 0
@@ -877,7 +886,7 @@ Kirigami.Page {
                                         source: row.type === "video" ? "media-playback-start"
                                               : row.type === "audio" ? "audio-volume-high"
                                               : "text-x-generic"
-                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                     }
                                     Column {
                                         anchors.verticalCenter: parent.verticalCenter
@@ -887,13 +896,13 @@ Kirigami.Page {
                                             text: row.text.length > 0 ? row.text
                                                 : (row.type === "video" ? "Video" : row.type === "audio" ? "Voice message" : "Document")
                                             elide: Text.ElideRight
-                                            color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                            color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                         }
                                         QQC2.Label {
                                             text: fileChip.ready ? "Tap to open" : "Tap to download"
                                             font: Kirigami.Theme.smallFont
                                             opacity: 0.7
-                                            color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                            color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                         }
                                     }
                                 }
@@ -937,7 +946,7 @@ Kirigami.Page {
                                         elide: Text.ElideRight
                                         maximumLineCount: 2
                                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                     }
                                     QQC2.Label {
                                         Layout.fillWidth: true
@@ -950,7 +959,7 @@ Kirigami.Page {
                                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                         opacity: 0.8
                                         font.pointSize: Kirigami.Theme.smallFont.pointSize
-                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                     }
                                 }
 
@@ -962,7 +971,7 @@ Kirigami.Page {
                             TextEdit {
                                 id: textLabel
                                 readonly property bool revoked: row.type === "revoked"
-                                readonly property string linkCol: "" + (row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.linkColor)
+                                readonly property string linkCol: "" + (row.fromMe ? page.sentFgColor : Kirigami.Theme.linkColor)
                                 visible: (row.text.length > 0 || revoked) && !fileChip.isFile
                                 width: parent.width
                                 text: revoked ? "This message was deleted" : page.linkify(row.text, linkCol)
@@ -973,9 +982,9 @@ Kirigami.Page {
                                 wrapMode: TextEdit.Wrap
                                 readOnly: true
                                 selectByMouse: true
-                                color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                                selectionColor: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.highlightColor
-                                selectedTextColor: row.fromMe ? Kirigami.Theme.highlightColor : Kirigami.Theme.highlightedTextColor
+                                color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
+                                selectionColor: row.fromMe ? page.sentFgColor : Kirigami.Theme.highlightColor
+                                selectedTextColor: row.fromMe ? page.sentBubbleColor : Kirigami.Theme.highlightedTextColor
 
                                 // Links open only while Ctrl is held, so a plain drag can select
                                 // text starting anywhere inside a URL rather than opening it.
@@ -996,7 +1005,7 @@ Kirigami.Page {
                                 visible: row.reactions.length > 0
                                 text: row.reactions
                                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                                color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                             }
 
                             Item {
@@ -1024,7 +1033,7 @@ Kirigami.Page {
                                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                                         font.italic: true
                                         opacity: 0.6
-                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                     }
 
                                     QQC2.Label {
@@ -1032,7 +1041,7 @@ Kirigami.Page {
                                         text: Qt.formatDateTime(new Date(row.timestamp * 1000), "hh:mm")
                                         font: Kirigami.Theme.smallFont
                                         opacity: 0.7
-                                        color: row.fromMe ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+                                        color: row.fromMe ? page.sentFgColor : Kirigami.Theme.textColor
                                     }
 
                                     Item {
@@ -1040,8 +1049,11 @@ Kirigami.Page {
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: row.fromMe && row.status.length > 0
                                         readonly property real tw: Kirigami.Units.iconSizes.small
-                                        readonly property color tc: row.status === "read" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.highlightedTextColor
-                                        readonly property real op: row.status === "read" ? 1.0 : 0.75
+                                        // Breeze positiveTextColor is a teal that sits too close in hue
+                                        // to the blue sent bubble to be legible, so read receipts vanished.
+                                        // Use a saturated green with real contrast against the bubble.
+                                        readonly property color tc: row.status === "read" ? page.sentReadTick : page.sentFgColor
+                                        readonly property real op: 1.0
                                         width: row.status === "sent" ? tw : tw * 1.5
                                         height: tw
 
