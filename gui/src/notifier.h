@@ -24,8 +24,14 @@ private Q_SLOTS:
     void onChatsReceived(const QJsonArray &chats);
 
 private:
+    // Materialise the bundled app icon to a real file and return its absolute
+    // path. The notification server cannot always resolve a freshly installed
+    // themed icon name, which showed a broken icon; a file path always loads.
+    static QString ensureIconPath();
+
     IpcClient *m_ipc;
     Controller *m_controller;
     Settings *m_settings;
     QSet<QString> m_muted; // jids whose notifications are silenced
+    QString m_iconPath;    // absolute path to the icon used in notifications
 };

@@ -6,6 +6,10 @@
 #include <KNotification>
 #include <KNotificationReplyAction>
 
+#include <QDir>
+#include <QFile>
+#include <QStandardPaths>
+
 #include <memory>
 
 Notifier::Notifier(IpcClient *ipc, Controller *controller, Settings *settings, QObject *parent)
@@ -13,9 +17,27 @@ Notifier::Notifier(IpcClient *ipc, Controller *controller, Settings *settings, Q
     , m_ipc(ipc)
     , m_controller(controller)
     , m_settings(settings)
+    , m_iconPath(ensureIconPath())
 {
     connect(ipc, &IpcClient::messageReceived, this, &Notifier::onMessageReceived);
     connect(ipc, &IpcClient::chatsReceived, this, &Notifier::onChatsReceived);
+}
+
+QString Notifier::ensureIconPath()
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation)
+        + QStringLiteral("/yaawp");
+    QDir().mkpath(dir);
+    const QString path = dir + QStringLiteral("/tr.cebi.yaawp.svg");
+    // Refresh the copy each start so it tracks the bundled icon across updates.
+    QFile::remove(path);
+    if (QFile::copy(QStringLiteral(":/icons/tr.cebi.yaawp.svg"), path)) {
+        QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner
+                              | QFileDevice::ReadGroup | QFileDevice::ReadOther);
+        return path;
+    }
+    // Fall back to the themed name if the resource could not be written out.
+    return QStringLiteral("tr.cebi.yaawp");
 }
 
 void Notifier::onChatsReceived(const QJsonArray &chats)
@@ -62,7 +84,7 @@ void Notifier::onMessageReceived(const QJsonObject &message)
     notification->setComponentName(QStringLiteral("yaawp"));
     notification->setTitle(title);
     notification->setText(text);
-    notification->setIconName(QStringLiteral("tr.cebi.yaawp"));
+    notification->setIconName(m_iconPath);
 
     auto reply = std::make_unique<KNotificationReplyAction>(QStringLiteral("Reply"));
     reply->setPlaceholderText(QStringLiteral("Reply to %1").arg(title));
