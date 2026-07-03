@@ -18,6 +18,9 @@ class Controller : public QObject
     Q_PROPERTY(QString connectionState READ connectionState NOTIFY connectionStateChanged)
     Q_PROPERTY(QString qrCode READ qrCode NOTIFY qrCodeChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY connectionStateChanged)
+    // True only when the device is unpaired and the QR sign-in screen must show.
+    // "connecting" and "disconnected" are not logins: the chat list stays up.
+    Q_PROPERTY(bool needsLogin READ needsLogin NOTIFY connectionStateChanged)
     Q_PROPERTY(QString currentChatJid READ currentChatJid WRITE setCurrentChatJid NOTIFY currentChatChanged)
     Q_PROPERTY(QString currentChatStatus READ currentChatStatus NOTIFY currentChatStatusChanged)
     Q_PROPERTY(QVariantMap groupInfo READ groupInfo NOTIFY groupInfoChanged)
@@ -35,6 +38,7 @@ public:
     QString connectionState() const { return m_connectionState; }
     QString qrCode() const { return m_qrCode; }
     bool loggedIn() const { return m_connectionState == QStringLiteral("connected"); }
+    bool needsLogin() const { return m_connectionState == QStringLiteral("logged_out"); }
     QString currentChatJid() const { return m_currentChatJid; }
     QString currentChatStatus() const { return m_currentChatStatus; }
     QVariantMap groupInfo() const { return m_groupInfo; }
@@ -87,7 +91,10 @@ private:
     void updateStatus();
 
     IpcClient *m_ipc;
-    QString m_connectionState = QStringLiteral("logged_out");
+    // Start in "connecting", not "logged_out": until the daemon reports the real
+    // state, assume a paired session that is coming online so the chat list shows
+    // with a reconnecting banner rather than a false QR sign-in screen.
+    QString m_connectionState = QStringLiteral("connecting");
     QString m_qrCode;
     QString m_currentChatJid;
     QString m_currentChatStatus;

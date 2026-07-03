@@ -120,6 +120,11 @@ func (e *Engine) setQR(code string) {
 // it can render the current state immediately: the connection state and, if
 // pairing is in progress, the latest QR code. Without this a client that
 // connects after the QR was generated would wait for the next refresh.
+//
+// "logged_out" is reported only when the device is unpaired (no stored session),
+// which is the sole case where the GUI must show the QR sign-in screen. A paired
+// but not yet online device reports "connecting" so the GUI keeps the chat list
+// on screen with a reconnecting banner instead of a misleading sign-in prompt.
 func (e *Engine) InitialEvents() []ipc.Event {
 	state := "logged_out"
 	if e.client.Store.ID != nil {
@@ -128,8 +133,6 @@ func (e *Engine) InitialEvents() []ipc.Event {
 		} else {
 			state = "connecting"
 		}
-	} else {
-		state = "connecting"
 	}
 	evts := []ipc.Event{ipc.NewEvent(ipc.EventConnection, map[string]any{"state": state})}
 
@@ -153,8 +156,10 @@ func (e *Engine) Start() error {
 }
 
 // beginQRLogin opens the QR channel, connects, and emits each QR code as an event.
+// The device is unpaired here, so it reports "logged_out" to put the GUI on the
+// QR sign-in screen until pairing succeeds and a "connected" event follows.
 func (e *Engine) beginQRLogin() error {
-	e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "connecting"}))
+	e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "logged_out"}))
 	qrChan, err := e.client.GetQRChannel(e.ctx)
 	if err != nil {
 		return err
@@ -171,7 +176,10 @@ func (e *Engine) beginQRLogin() error {
 			case "success":
 				// Pairing is done; connection events will follow.
 			default:
-				e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": item.Event}))
+				// The code timed out or errored; the device is still unpaired,
+				// so keep the GUI on the sign-in screen for the next code.
+				e.setQR("")
+				e.emit(ipc.NewEvent(ipc.EventConnection, map[string]any{"state": "logged_out"}))
 			}
 		}
 	}()

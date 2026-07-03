@@ -20,6 +20,8 @@ func main() {
 	sockPath := flag.String("socket", defaultSock, "Unix domain socket path for IPC")
 	flag.Parse()
 
+	setupLogging()
+
 	// Refuse to run twice. The GUI spawns the daemon on demand and a systemd
 	// user service may also start it; a stale second instance would remove the
 	// live socket and orphan the first. An advisory lock keeps a single owner.
@@ -58,6 +60,29 @@ func main() {
 	log.Println("shutting down")
 	eng.Disconnect()
 	_ = os.Remove(*sockPath)
+}
+
+// setupLogging redirects stdout and stderr to a log file so the daemon leaves a
+// diagnosable record even when the GUI launches it detached and discards its
+// output. whatsmeow logs to stdout, so redirecting the file descriptors (rather
+// than only the standard logger) captures the protocol logs too. The file is
+// truncated when it grows past a couple of megabytes to keep it bounded.
+func setupLogging() {
+	path, err := store.LogPath()
+	if err != nil {
+		return
+	}
+	flags := os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	if fi, statErr := os.Stat(path); statErr == nil && fi.Size() > 2<<20 {
+		flags |= os.O_TRUNC
+	}
+	f, err := os.OpenFile(path, flags, 0o600)
+	if err != nil {
+		return
+	}
+	// Point fds 1 and 2 at the log file; loggers and panics both follow.
+	_ = syscall.Dup2(int(f.Fd()), int(os.Stdout.Fd()))
+	_ = syscall.Dup2(int(f.Fd()), int(os.Stderr.Fd()))
 }
 
 // acquireLock takes an exclusive advisory lock on the daemon lock file. It

@@ -21,7 +21,9 @@ Kirigami.ApplicationWindow {
     property string currentSecondary: "" // "", "conversation", "settings"
     property var conversationPage: null
 
-    pageStack.initialPage: loginComponent
+    // Start on the sign-in screen only when the device is genuinely unpaired.
+    // A paired session that is still connecting opens straight on the chat list.
+    pageStack.initialPage: Controller.needsLogin ? loginComponent : chatListComponent
 
     // Closing the window hides it to the system tray instead of quitting.
     onClosing: (close) => {
@@ -30,19 +32,18 @@ Kirigami.ApplicationWindow {
     }
 
     function refreshRoot() {
-        if (Controller.loggedIn && !showingChats) {
-            pageStack.clear()
-            pageStack.push(chatListComponent)
-            showingChats = true
-            currentSecondary = ""
-            conversationPage = null
-        } else if (!Controller.loggedIn && showingChats) {
-            pageStack.clear()
-            pageStack.push(loginComponent)
-            showingChats = false
-            currentSecondary = ""
-            conversationPage = null
+        // The root is the chat list unless the device is unpaired, in which case
+        // it is the sign-in screen. Merely connecting or disconnected keeps the
+        // chat list up (it shows its own reconnecting banner).
+        var wantChats = !Controller.needsLogin
+        if (wantChats === showingChats) {
+            return
         }
+        pageStack.clear()
+        pageStack.push(wantChats ? chatListComponent : loginComponent)
+        showingChats = wantChats
+        currentSecondary = ""
+        conversationPage = null
     }
 
     // Remove any secondary page so the stack is just the chat list again.
@@ -137,7 +138,12 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Component.onCompleted: refreshRoot()
+    Component.onCompleted: {
+        // Match the tracker to whatever initialPage chose, so the first
+        // refreshRoot is a no-op instead of re-pushing the same root.
+        showingChats = !Controller.needsLogin
+        refreshRoot()
+    }
 
     Component { id: loginComponent; LoginPage {} }
     Component { id: chatListComponent; ChatListPage {} }

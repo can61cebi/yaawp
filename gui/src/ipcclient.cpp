@@ -66,7 +66,10 @@ void IpcClient::onSocketError()
 
 void IpcClient::ensureDaemonRunning()
 {
-    if (m_spawnedDaemon) {
+    // Only one daemon can run (it holds an advisory lock), so a spawn while one
+    // is alive simply exits. Rate-limit to avoid a spawn storm while the daemon
+    // is failing, but still allow a restart if it died: retry at most every 5s.
+    if (m_spawnCooldown.isValid() && m_spawnCooldown.elapsed() < 5000) {
         return;
     }
     QString exe = QStandardPaths::findExecutable(QStringLiteral("yaawp-daemon"));
@@ -79,7 +82,8 @@ void IpcClient::ensureDaemonRunning()
         }
     }
     if (!exe.isEmpty()) {
-        m_spawnedDaemon = QProcess::startDetached(exe, {});
+        m_spawnCooldown.restart();
+        QProcess::startDetached(exe, {});
     }
 }
 
@@ -179,7 +183,11 @@ void IpcClient::handleResponse(const QString &id, bool ok, const QJsonValue &res
         Q_EMIT commandFailed(method, error);
         return;
     }
-    if (method == QStringLiteral("list_chats")) {
+    if (method == QStringLiteral("get_state")) {
+        // Adopt the daemon's authoritative state on connect, in case the initial
+        // broadcast was missed. This is what corrects a stale "connecting".
+        Q_EMIT connectionStateChanged(result.toObject().value(QStringLiteral("state")).toString());
+    } else if (method == QStringLiteral("list_chats")) {
         Q_EMIT chatsReceived(result.toArray());
     } else if (method == QStringLiteral("list_messages")) {
         Q_EMIT messagesReceived(result.toArray());

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QElapsedTimer>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -91,5 +92,8 @@ private:
     quint64 m_nextId = 1;
     QHash<QString, QString> m_pending; // request id -> method
     QTimer m_reconnectTimer;
-    bool m_spawnedDaemon = false;
+    // Rate-limits daemon spawns. A one-shot latch would never respawn a daemon
+    // that died, leaving the GUI stuck offline; a cooldown allows recovery
+    // without spawning in a tight loop while the daemon is failing to start.
+    QElapsedTimer m_spawnCooldown;
 };

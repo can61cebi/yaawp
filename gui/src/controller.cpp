@@ -144,6 +144,10 @@ void Controller::onConnectionStateChanged(const QString &state)
         m_qrCode.clear();
         Q_EMIT qrCodeChanged();
         m_ipc->requestChats();
+    } else if (state != QStringLiteral("logged_out")) {
+        // Paired but not yet online: load the cached chat list from the daemon so
+        // conversations show right away instead of a blank page while it connects.
+        m_ipc->requestChats();
     }
 }
 

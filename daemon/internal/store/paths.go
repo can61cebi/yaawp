@@ -88,3 +88,32 @@ func LockPath() (string, error) {
 	}
 	return filepath.Join(filepath.Dir(sock), "daemon.lock"), nil
 }
+
+// StateDir returns the XDG state directory for yaawp, creating it if needed.
+// It holds logs and other data that should persist but is not user content.
+func StateDir() (string, error) {
+	base := os.Getenv("XDG_STATE_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		base = filepath.Join(home, ".local", "state")
+	}
+	dir := filepath.Join(base, "yaawp")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// LogPath returns the daemon log file path. The GUI launches the daemon
+// detached, so its stdout is otherwise lost; writing here keeps a record for
+// diagnosing connection and session problems.
+func LogPath() (string, error) {
+	dir, err := StateDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "daemon.log"), nil
+}
