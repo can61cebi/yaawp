@@ -746,11 +746,8 @@ func (e *Engine) downloadMediaAsync(chatJID, id string, media whatsmeow.Download
 // open it. Only messages received after media info was stored can be fetched.
 func (e *Engine) DownloadMedia(p ipc.DownloadMediaParams) (interface{}, error) {
 	raw, typ, err := e.db.MediaInfo(p.ChatJID, p.MessageID)
-	if err != nil {
-		return nil, err
-	}
-	if len(raw) == 0 {
-		return nil, fmt.Errorf("no downloadable media stored for %s", p.MessageID)
+	if err != nil || len(raw) == 0 {
+		return nil, fmt.Errorf("this attachment is no longer available to download")
 	}
 	var media whatsmeow.DownloadableMessage
 	var filename string

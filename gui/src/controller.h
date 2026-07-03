@@ -43,6 +43,8 @@ public:
     // path, otherwise return an empty string.
     Q_INVOKABLE QString takeClipboardImage() const;
     Q_INVOKABLE void openUrl(const QString &url) const;
+    // Return a fresh temp file url for a voice recording.
+    Q_INVOKABLE QString newVoiceFile() const;
     Q_INVOKABLE void saveScroll(const QString &jid, double contentY);
     Q_INVOKABLE double savedScroll(const QString &jid) const;
     Q_INVOKABLE void requestGroupInfo(const QString &jid);

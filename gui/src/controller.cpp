@@ -151,6 +151,14 @@ void Controller::openUrl(const QString &url) const
     }
 }
 
+QString Controller::newVoiceFile() const
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    const QString path = QDir(dir).filePath(
+        QStringLiteral("yaawp-voice-%1.ogg").arg(QDateTime::currentMSecsSinceEpoch()));
+    return QUrl::fromLocalFile(path).toString();
+}
+
 QString Controller::takeClipboardImage() const
 {
     const QImage image = QGuiApplication::clipboard()->image();

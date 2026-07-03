@@ -49,6 +49,7 @@ Kirigami.Page {
         ListView {
             id: starredList
             implicitWidth: Kirigami.Units.gridUnit * 24
+            implicitHeight: Math.min(contentHeight, Kirigami.Units.gridUnit * 24)
             model: Controller.starredMessages
 
             delegate: QQC2.ItemDelegate {

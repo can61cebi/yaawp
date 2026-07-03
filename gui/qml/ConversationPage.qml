@@ -264,6 +264,7 @@ Kirigami.Page {
         recorder: MediaRecorder {
             id: audioRecorder
             quality: MediaRecorder.HighQuality
+            audioChannelCount: 1
             mediaFormat {
                 fileFormat: MediaFormat.Ogg
                 audioCodec: MediaFormat.Opus
@@ -284,6 +285,7 @@ Kirigami.Page {
 
         ListView {
             implicitWidth: Kirigami.Units.gridUnit * 22
+            implicitHeight: Math.min(contentHeight, Kirigami.Units.gridUnit * 22)
             model: Controller.groupInfo.participants !== undefined ? Controller.groupInfo.participants : []
 
             header: ColumnLayout {
@@ -398,6 +400,7 @@ Kirigami.Page {
 
         ListView {
             implicitWidth: Kirigami.Units.gridUnit * 20
+            implicitHeight: Math.min(contentHeight, Kirigami.Units.gridUnit * 22)
             model: ChatModel
 
             delegate: QQC2.ItemDelegate {
@@ -565,7 +568,14 @@ Kirigami.Page {
                 QQC2.ToolButton {
                     readonly property bool recording: audioRecorder.recorderState === MediaRecorder.RecordingState
                     icon.name: recording ? "media-playback-stop-symbolic" : "audio-input-microphone"
-                    onClicked: recording ? audioRecorder.stop() : audioRecorder.record()
+                    onClicked: {
+                        if (recording) {
+                            audioRecorder.stop()
+                        } else {
+                            audioRecorder.outputLocation = Controller.newVoiceFile()
+                            audioRecorder.record()
+                        }
+                    }
                 }
                 QQC2.Label {
                     Layout.fillWidth: true

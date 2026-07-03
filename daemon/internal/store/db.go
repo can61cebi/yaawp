@@ -57,9 +57,13 @@ CREATE TABLE IF NOT EXISTS reactions (
 );
 `
 
-const insertMessageSQL = `INSERT OR IGNORE INTO messages
+const insertMessageSQL = `INSERT INTO messages
     (id, chat_jid, sender_jid, from_me, ts, type, text, status, media_path, media_w, media_h, raw_media, edited, quoted_id, quoted_sender, quoted_text)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(chat_jid, id) DO UPDATE SET
+        raw_media = COALESCE(messages.raw_media, excluded.raw_media),
+        media_w = CASE WHEN messages.media_w = 0 THEN excluded.media_w ELSE messages.media_w END,
+        media_h = CASE WHEN messages.media_h = 0 THEN excluded.media_h ELSE messages.media_h END`
 
 // updateChatSQL advances a chat summary only when the incoming message is at
 // least as recent as the stored one.
