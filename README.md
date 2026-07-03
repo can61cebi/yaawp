@@ -1,9 +1,18 @@
-# yaawp
+<p align="center">
+  <img src="assets/logo.svg" width="88" alt="yaawp logo">
+</p>
 
-A native WhatsApp client for Arch Linux and KDE Plasma. yaawp speaks the
-WhatsApp multi-device protocol directly through a background service and
-presents it in a native Kirigami interface. It is not a web wrapper and it does
-not embed a browser.
+<h1 align="center">yaawp</h1>
+
+<p align="center">A native WhatsApp client for Arch Linux and KDE Plasma.</p>
+
+<p align="center">
+  <img src="assets/screenshot.svg" width="840" alt="yaawp main window">
+</p>
+
+yaawp speaks the WhatsApp multi-device protocol directly through a background
+service and presents it in a native Kirigami interface. It is not a web wrapper
+and it does not embed a browser.
 
 ## Features
 
@@ -132,6 +141,10 @@ paired, so the window shows a QR code. Open WhatsApp on your phone, go to
 Settings, Linked Devices, Link a Device, and scan the code. Once linked, your
 chats sync in and the client is ready.
 
+<p align="center">
+  <img src="assets/login.svg" width="620" alt="yaawp sign-in screen">
+</p>
+
 ## Start on login and notifications
 
 Open Settings and turn on "Start on login". yaawp then writes an autostart entry
@@ -163,6 +176,7 @@ gui/       C++ and QML Kirigami application
 ipc/       protocol.md, the wire contract shared by both sides
 packaging/ systemd user unit and a PKGBUILD
 docs/      architecture and risk notes
+assets/    logo and interface mockups shown in this README
 install.sh local build and install helper
 ```
 

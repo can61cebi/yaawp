@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="960" height="600" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg"
+     font-family="Noto Sans, Segoe UI, Cantarell, sans-serif">
+  <!-- Faithful mockup of the yaawp desktop window using the exact Breeze Dark
+       palette: window #202326, received bubble #292c30, sent bubble (highlight)
+       #3daee9, text #fcfcfc, secondary #a1a9b1. -->
+  <defs>
+    <clipPath id="win"><rect width="960" height="600" rx="10"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#win)">
+    <rect width="960" height="600" fill="#202326"/>
+
+    <!-- Title bar -->
+    <rect width="960" height="34" fill="#2b2f33"/>
+    <line x1="0" y1="34" x2="960" y2="34" stroke="#16181a" stroke-width="1"/>
+    <g transform="translate(12,7)">
+      <rect width="20" height="20" rx="5" fill="#1ea362"/>
+      <rect x="4.6" y="4.2" width="10.8" height="7.6" rx="2.6" fill="#ffffff"/>
+      <path d="M7 11 L5.7 15 L10 11.4 Z" fill="#ffffff"/>
+      <circle cx="7.4" cy="8" r="1" fill="#1ea362"/>
+      <circle cx="10" cy="8" r="1" fill="#1ea362"/>
+      <circle cx="12.6" cy="8" r="1" fill="#1ea362"/>
+    </g>
+    <text x="40" y="22" font-size="13" fill="#fcfcfc">yaawp</text>
+    <g stroke="#a1a9b1" stroke-width="1.3" fill="none">
+      <line x1="890" y1="18" x2="902" y2="18"/>
+      <rect x="914" y="12" width="11" height="11" rx="1.5"/>
+      <line x1="938" y1="12" x2="948" y2="22"/>
+      <line x1="948" y1="12" x2="938" y2="22"/>
+    </g>
+
+    <!-- ===================== Left column: chat list ===================== -->
+    <line x1="320" y1="34" x2="320" y2="600" stroke="#16181a" stroke-width="1"/>
+
+    <!-- list header -->
+    <text x="16" y="64" font-size="15" font-weight="700" fill="#fcfcfc">Chats</text>
+    <g stroke="#a1a9b1" stroke-width="1.4" fill="none">
+      <!-- refresh -->
+      <path d="M250 53 a7 7 0 1 0 2 -5" />
+      <path d="M251 44 l1 4 l-4 0" fill="#a1a9b1" stroke="none"/>
+      <!-- star -->
+      <path d="M282 51 l1.9 3.9 l4.3 0.6 l-3.1 3 l0.7 4.3 l-3.8 -2 l-3.8 2 l0.7 -4.3 l-3.1 -3 l4.3 -0.6 Z" fill="#a1a9b1" stroke="none"/>
+      <!-- settings (gear, simplified) -->
+      <circle cx="304" cy="57" r="4.2"/>
+      <path d="M304 49.5 v2 M304 62.5 v-2 M296.5 57 h2 M311.5 57 h-2 M299 51.7 l1.4 1.4 M309 62.3 l-1.4 -1.4 M309 51.7 l-1.4 1.4 M299 62.3 l1.4 -1.4"/>
+    </g>
+
+    <!-- search field -->
+    <rect x="8" y="90" width="304" height="34" rx="17" fill="#141618" stroke="#33373b" stroke-width="1"/>
+    <g stroke="#a1a9b1" stroke-width="1.4" fill="none">
+      <circle cx="26" cy="106" r="5"/>
+      <line x1="30" y1="110" x2="34" y2="114"/>
+    </g>
+    <text x="42" y="111" font-size="12.5" fill="#a1a9b1">Search chats</text>
+
+    <!-- selected row highlight (open chat) -->
+    <rect x="4" y="136" width="312" height="56" rx="6" fill="#2a3036"/>
+
+    <!-- rows -->
+    <!-- row 1: Alex Carter (open) -->
+    <circle cx="34" cy="164" r="20" fill="#1d99f3"/>
+    <text x="34" y="169" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">AC</text>
+    <text x="60" y="159" font-size="14" font-weight="700" fill="#fcfcfc">Alex Carter</text>
+    <text x="308" y="157" font-size="11" fill="#a1a9b1" text-anchor="end">14:32</text>
+    <text x="60" y="178" font-size="12" fill="#a1a9b1">You: See you</text>
+
+    <!-- row 2: Design Team + unread -->
+    <circle cx="34" cy="224" r="20" fill="#2ec27e"/>
+    <text x="34" y="229" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">DT</text>
+    <text x="60" y="219" font-size="14" font-weight="700" fill="#fcfcfc">Design Team</text>
+    <text x="308" y="217" font-size="11" fill="#3daee9" text-anchor="end">13:10</text>
+    <text x="60" y="238" font-size="12" fill="#cfd6dc">Maria: the mockups are ready</text>
+    <rect x="292" y="228" width="20" height="18" rx="9" fill="#3daee9"/>
+    <text x="302" y="241" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+
+    <!-- row 3: Sam Rivera + mute -->
+    <circle cx="34" cy="284" r="20" fill="#e66100"/>
+    <text x="34" y="289" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">SR</text>
+    <text x="60" y="279" font-size="14" font-weight="700" fill="#fcfcfc">Sam Rivera</text>
+    <text x="308" y="277" font-size="11" fill="#a1a9b1" text-anchor="end">12:04</text>
+    <text x="60" y="298" font-size="12" fill="#a1a9b1">Thanks for the update</text>
+    <g transform="translate(296,290)" stroke="#a1a9b1" stroke-width="1.3" fill="none">
+      <path d="M0 3 h3 l4 -3 v10 l-4 -3 h-3 Z" fill="#a1a9b1" stroke="none"/>
+      <line x1="9" y1="2" x2="14" y2="9"/>
+    </g>
+
+    <!-- row 4: Mom -->
+    <circle cx="34" cy="344" r="20" fill="#9141ac"/>
+    <text x="34" y="349" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">M</text>
+    <text x="60" y="339" font-size="14" font-weight="700" fill="#fcfcfc">Mom</text>
+    <text x="308" y="337" font-size="11" fill="#a1a9b1" text-anchor="end">Yesterday</text>
+    <text x="60" y="358" font-size="12" fill="#a1a9b1">Call me when you can</text>
+
+    <!-- row 5: Dev Group + pin -->
+    <circle cx="34" cy="404" r="20" fill="#c01c28"/>
+    <text x="34" y="409" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">DG</text>
+    <text x="60" y="399" font-size="14" font-weight="700" fill="#fcfcfc">Dev Group</text>
+    <text x="308" y="397" font-size="11" fill="#a1a9b1" text-anchor="end">Mon</text>
+    <text x="60" y="418" font-size="12" fill="#a1a9b1">Alex: pushed the fix</text>
+    <g transform="translate(297,406)" fill="#a1a9b1">
+      <path d="M4 0 l6 0 l-1 6 l3 3 l-11 0 l3 -3 Z"/>
+      <line x1="6.5" y1="9" x2="6.5" y2="15" stroke="#a1a9b1" stroke-width="1.3"/>
+    </g>
+
+    <!-- ===================== Right column: conversation ===================== -->
+    <!-- header -->
+    <circle cx="344" cy="58" r="16" fill="#1d99f3"/>
+    <text x="344" y="63" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">AC</text>
+    <text x="372" y="54" font-size="14" font-weight="700" fill="#fcfcfc">Alex Carter</text>
+    <text x="372" y="71" font-size="12" fill="#a1a9b1">online</text>
+    <g stroke="#a1a9b1" stroke-width="1.4" fill="none">
+      <circle cx="900" cy="55" r="5.5"/>
+      <line x1="904" y1="59" x2="909" y2="64"/>
+    </g>
+    <g fill="#a1a9b1">
+      <circle cx="932" cy="50" r="1.7"/>
+      <circle cx="932" cy="57" r="1.7"/>
+      <circle cx="932" cy="64" r="1.7"/>
+    </g>
+    <line x1="320" y1="82" x2="960" y2="82" stroke="#16181a" stroke-width="1"/>
+
+    <!-- date chip -->
+    <rect x="611" y="94" width="58" height="20" rx="10" fill="#292c30"/>
+    <text x="640" y="108" font-size="11" fill="#a1a9b1" text-anchor="middle">Today</text>
+
+    <!-- messages -->
+    <!-- received -->
+    <rect x="340" y="128" width="212" height="38" rx="12" fill="#292c30"/>
+    <text x="352" y="152" font-size="13" fill="#fcfcfc">Hey, did you get the files?</text>
+
+    <!-- sent -->
+    <rect x="748" y="176" width="196" height="38" rx="12" fill="#3daee9"/>
+    <text x="760" y="200" font-size="13" fill="#ffffff">Yes, downloading them now</text>
+
+    <!-- received (two lines) -->
+    <rect x="340" y="224" width="232" height="54" rx="12" fill="#292c30"/>
+    <text x="352" y="246" font-size="13" fill="#fcfcfc">Great. Let me know if anything</text>
+    <text x="352" y="266" font-size="13" fill="#fcfcfc">is missing</text>
+
+    <!-- sent -->
+    <rect x="860" y="288" width="84" height="38" rx="12" fill="#3daee9"/>
+    <text x="872" y="312" font-size="13" fill="#ffffff">Will do</text>
+
+    <!-- received -->
+    <rect x="340" y="336" width="224" height="38" rx="12" fill="#292c30"/>
+    <text x="352" y="360" font-size="13" fill="#fcfcfc">Are we still on for tomorrow?</text>
+
+    <!-- sent -->
+    <rect x="766" y="384" width="178" height="38" rx="12" fill="#3daee9"/>
+    <text x="778" y="408" font-size="13" fill="#ffffff">Yes, 10am works for me</text>
+
+    <!-- received -->
+    <rect x="340" y="432" width="176" height="38" rx="12" fill="#292c30"/>
+    <text x="352" y="456" font-size="13" fill="#fcfcfc">Perfect, see you then</text>
+
+    <!-- sent (with read ticks) -->
+    <rect x="860" y="480" width="84" height="38" rx="12" fill="#3daee9"/>
+    <text x="872" y="504" font-size="13" fill="#ffffff">See you</text>
+
+    <!-- input bar -->
+    <line x1="320" y1="540" x2="960" y2="540" stroke="#16181a" stroke-width="1"/>
+    <g stroke="#a1a9b1" stroke-width="1.5" fill="none">
+      <path d="M338 566 l10 -10 a4 4 0 0 1 6 6 l-11 11 a2.5 2.5 0 0 1 -4 -4 l10 -10"/>
+    </g>
+    <rect x="366" y="554" width="520" height="34" rx="17" fill="#292c30"/>
+    <text x="384" y="576" font-size="13" fill="#a1a9b1">Type a message</text>
+    <g stroke="#a1a9b1" stroke-width="1.4" fill="none">
+      <circle cx="866" cy="571" r="7"/>
+      <circle cx="863" cy="569" r="0.8" fill="#a1a9b1"/>
+      <circle cx="869" cy="569" r="0.8" fill="#a1a9b1"/>
+      <path d="M862 573 a4 3 0 0 0 8 0"/>
+    </g>
+    <circle cx="916" cy="571" r="18" fill="#3daee9"/>
+    <g fill="#ffffff">
+      <rect x="912" y="562" width="8" height="12" rx="4"/>
+      <path d="M909 572 a7 7 0 0 0 14 0" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="916" y1="579" x2="916" y2="583" stroke="#ffffff" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <rect x="0.5" y="0.5" width="959" height="599" rx="10" fill="none" stroke="#4a4e53" stroke-width="1"/>
+</svg>
