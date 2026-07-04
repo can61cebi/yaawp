@@ -72,14 +72,24 @@ void IpcClient::ensureDaemonRunning()
     if (m_spawnCooldown.isValid() && m_spawnCooldown.elapsed() < 5000) {
         return;
     }
-    QString exe = QStandardPaths::findExecutable(QStringLiteral("yaawp-daemon"));
-    if (exe.isEmpty()) {
-        // Development fallback relative to the GUI binary (gui/build/bin/yaawp).
-        const QString dev = QCoreApplication::applicationDirPath()
-            + QStringLiteral("/../../../daemon/bin/yaawp-daemon");
-        if (QFileInfo::exists(dev)) {
-            exe = dev;
+    const QString appDir = QCoreApplication::applicationDirPath();
+    QString exe;
+    // Prefer the daemon installed next to the GUI (e.g. ~/.local/bin), then the
+    // dev tree. This is more reliable than a PATH lookup: the desktop autostart
+    // entry runs under the systemd user session, whose PATH usually omits
+    // ~/.local/bin, so findExecutable() fails at login and the daemon never
+    // starts, leaving the GUI stuck on "Connecting to WhatsApp".
+    for (const QString &candidate : {
+             appDir + QStringLiteral("/yaawp-daemon"),
+             appDir + QStringLiteral("/../../../daemon/bin/yaawp-daemon"),
+         }) {
+        if (QFileInfo::exists(candidate)) {
+            exe = candidate;
+            break;
         }
+    }
+    if (exe.isEmpty()) {
+        exe = QStandardPaths::findExecutable(QStringLiteral("yaawp-daemon"));
     }
     if (!exe.isEmpty()) {
         m_spawnCooldown.restart();
